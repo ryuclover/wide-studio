@@ -1,0 +1,14 @@
+import { normalizeNativeProject } from '../extension/src/bridge/snapshotNormalizer';
+import { ProjectStore } from '../extension/src/bridge/projectStore';
+import { writeFileSync } from 'node:fs';
+const make=(fps=30)=>({metadata:{appVersion:'1.7.12',version:1,createdTime:1},activity:{time:10},presentation:{scene:{duration:60,frameRate:fps,canvas:{width:1920,height:1080}},layer:[{clip:[{load:{source:'text',text:'A',trim:{duration:2}},filter:[{kind:'startTime',value:5}]},{load:{source:'text',text:'B',trim:{duration:2}}}]}]},selection:{kind:'empty'},directory:{setup:{path:'/widevideo/'}}});
+const fractional=normalizeNativeProject(make(29.97),'review');
+const timing=normalizeNativeProject(make(),'review');
+const a=make(),b=make();b.metadata.createdTime=2;
+const first=normalizeNativeProject(a,'session-A'),second=normalizeNativeProject(b,'session-B');
+const store=new ProjectStore();store.setSnapshot(first);const acceptsNewProject=store.setSnapshot(second);
+const selected=make();selected.selection={kind:'clip',value:selected.presentation.layer[0].clip[0]} as any;
+const before=normalizeNativeProject(a,'review'),after=normalizeNativeProject(selected,'review');
+const defaults=normalizeNativeProject({} as any,'review');
+const report={fractionalFPS:{input:29.97,output:fractional.composition.fps},timing:{observedStarts:timing.clips.map(c=>c.startFrame),note:'Starts derived from cumulative durations without reading native timing or start-time filters'},identity:{first:first.projectId,second:second.projectId,collision:first.projectId===second.projectId,storeAcceptedNewSession:acceptsNewProject,retainedSession:store.getSnapshot()?.sessionId},selection:{before:before.selection.kind,after:after.selection.kind,sameRevision:before.revision===after.revision},missingProjectFields:{resolution:[defaults.composition.width,defaults.composition.height],fps:defaults.composition.fps,seek:defaults.capabilities.find(c=>c.id==='transport.seek')}};
+writeFileSync('docs/mapping/review-m1-probes.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));

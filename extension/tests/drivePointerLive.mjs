@@ -1,0 +1,44 @@
+import {puppeteer} from '../node_modules/chrome-devtools-mcp/build/src/third_party/index.js';
+import {resolve} from 'node:path';
+import {writeFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+console.log('Starting isolated Chrome');
+const browser=await puppeteer.launch({executablePath:resolve('.browser/chrome/win64-156.0.8078.47/chrome-win64/chrome.exe'),headless:true,pipe:true,enableExtensions:true,protocolTimeout:30000,defaultViewport:{width:1440,height:900},args:['--no-first-run']});
+console.log('Chrome ready');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+try{
+ await browser.installExtension(resolve('.browser/drive-test'));console.log('Extension installed');
+ const page=await browser.newPage();page.on('pageerror',e=>console.log('PAGEERROR',e.message));
+ await page.goto('https://wide.video/app/1.7.12/');console.log('Editor loaded');
+ await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Open Temporary Project')));
+ await page.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Open Temporary Project')).click());
+ await page.waitForSelector('.ws-drive-panel');await page.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Drive').click());
+ const frame=await page.waitForFrame(f=>f.url().includes('drive.html'));await frame.waitForSelector('.drive-file');console.log('Drive loaded');
+ await frame.evaluate(()=>[...document.querySelectorAll('button')].find(b=>/Memes/i.test(b.getAttribute('aria-label')||'')).click());
+ await frame.waitForSelector('[aria-label="Abrir pasta Emojis"]');await frame.click('[aria-label="Abrir pasta Emojis"]');
+ await frame.waitForSelector('[aria-label^="Visualizar 2020-07-09 22.43.40"]');
+ console.log('Emojis loaded');
+ const source=()=>frame.$('[aria-label^="Visualizar 2020-07-09 22.43.40"]');
+ const read=()=>page.evaluate(()=>({clips:[...document.querySelectorAll('.TimelineClipContainer')].map(e=>({name:e.title,time:e.timing?.presentation.start})),media:document.querySelectorAll('.MediaListView .MediaView').length,toast:document.querySelector('.ws-drive-drop-toast')?.textContent}));
+ const gesture=async({virtual=false,invalid=false,cancel=false,fraction=.2,fast=false,inside=false}={})=>{
+  const a=await (await source()).boundingBox(),b=await (await page.$(virtual?'.TimelineLayerRow.virtual .clipsContainer':'.TimelineLayerRow:not(.virtual) .clipsContainer')).boundingBox();
+  await page.mouse.move(a.x+a.width/2,a.y+30);await page.mouse.down();await page.mouse.move(a.x+a.width/2+15,a.y+40,{steps:fast?1:4});if(!fast)await sleep(600);
+  console.log('Pointer captured',await frame.evaluate(()=>document.querySelector('.drive-feedback')?.textContent));
+ await page.mouse.move(inside?a.x+a.width/2+20:invalid?1300:b.x+b.width*fraction,inside?a.y+45:invalid?100:b.y+15,{steps:fast?1:25});if(!fast)await sleep(250);
+  if(cancel)await page.keyboard.press('Escape');await page.mouse.up();console.log('Released',await frame.evaluate(()=>document.querySelector('.drive-feedback')?.textContent),await page.evaluate(()=>document.querySelector('.ws-drive-drop-toast')?.textContent));
+ };
+ await gesture();await page.waitForFunction(()=>document.querySelectorAll('.TimelineClipContainer').length===1,{timeout:60000});
+ await frame.waitForFunction(()=>document.querySelector('.drive-feedback').textContent.includes('inserido em'),{timeout:60000});const first=await read();console.log('FIRST',JSON.stringify(first));
+ await gesture({virtual:true,fraction:.35});await page.waitForFunction(()=>document.querySelectorAll('.TimelineClipContainer').length===2,{timeout:60000});await frame.waitForFunction(()=>document.querySelector('.drive-feedback').textContent.includes('inserido em'),{timeout:60000});const second=await read();assert.equal(second.media,1,'reuse existing media');console.log('SECOND',JSON.stringify(second));
+ await gesture({cancel:true});await frame.waitForFunction(()=>document.querySelector('.drive-feedback').textContent.includes('cancelado'));assert.equal((await read()).clips.length,2);
+ await gesture({invalid:true});await frame.waitForFunction(()=>document.querySelector('.drive-feedback').textContent.includes('desbloqueada'));assert.equal((await read()).clips.length,2);
+ await gesture({inside:true});await frame.waitForFunction(()=>document.querySelector('.drive-feedback').textContent.includes('desbloqueada'));assert.equal((await read()).clips.length,2);
+ const worker=await (await browser.waitForTarget(t=>t.type()==='service_worker')).worker();
+ await worker.evaluate(()=>{const original=chrome.tabs.sendMessage.bind(chrome.tabs);chrome.tabs.sendMessage=async(...args)=>{if(args[1]?.type==='PREPARE_DRIVE_DROP')await new Promise(r=>setTimeout(r,900));return original(...args);};});
+ await gesture({fast:true,fraction:.5});await page.waitForFunction(()=>document.querySelectorAll('.TimelineClipContainer').length===3,{timeout:25000});await frame.waitForFunction(()=>document.querySelector('.drive-feedback').textContent.includes('inserido em'));const fast=await read();assert.equal(fast.media,1);console.log('FAST',JSON.stringify(fast));
+ await (await source()).click();await frame.waitForSelector('.drive-preview');await frame.click('[aria-label="Fechar prévia"]');assert.equal((await read()).clips.length,3,'click after drag opens preview without inserting');
+ await page.screenshot({path:'../docs/evidence/drive-pointer-real.png'});
+ writeFileSync('../docs/evidence/drive-pointer-real.json',JSON.stringify({first,second,fast,fastReceiverDelayMs:900,cancellation:true,invalidTarget:true,releaseInsideIframe:true,clickPreviewAfterDrag:true,gesture:'ordinary mouse move/down/up; no drag interception or injected drop'},null,2));
+ console.log('PASS: ordinary cross-frame pointer, two insertions, reuse, Escape and invalid target');
+}catch(e){console.error(e);for(const p of await browser.pages()){try{console.log('DEBUG',await p.evaluate(()=>({url:location.href,status:document.querySelector('.ws-drive-drop-toast')?.textContent,frames:[...document.querySelectorAll('iframe')].map(f=>f.src)})));for(const f of p.frames())if(f.url().includes('drive.html'))console.log('DRIVE',await f.evaluate(()=>document.body.innerText));}catch{}}throw e;
+}finally{await browser.close();}

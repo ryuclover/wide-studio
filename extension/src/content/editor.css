@@ -1,0 +1,94 @@
+/* The native components stay mounted. The workspace only changes presentation. */
+html[data-wide-studio-layout="simple"] #ProjectApp {
+  --backgroundColor:#16181c; --panelColor:#23262c; --panelColorLighter05:#2d3138;
+  --panelGraphicsColor:#393e46; --contextMenuBackground:#2b2f36;
+  --textColor:#e2e5e9; --textColorFade:#a4abb6; --linkColor:#bedb92;
+  --activeColor:#94bc61; --activeColor25:#94bc6140; --timeColor:#bedb92;
+  --inputBgColor:#1a1d22; --inputBorderColor:#454b55; --menuButtonHoverBgColor:#353b43;
+  --buttonBgColor:#456528; --buttonBgColorHover:#567e31;
+  --panelGap:6px; --gap:12px; --layoutSize1:.65fr; --layoutSize2:.38fr; --layoutSize3:.38fr;
+  font:13px/1.4 "Segoe UI",system-ui,sans-serif;background:var(--backgroundColor);color:var(--textColor);
+}
+#wide-studio-workspace {display:flex;align-items:center;flex:0 0 auto;padding:3px 8px 3px 4px;font:13px/1.4 "Segoe UI",system-ui,sans-serif;gap:6px}
+#wide-studio-workspace[hidden],#wide-studio-workspace[data-original="true"] {display:none}
+#wide-studio-workspace button[data-action="import"] {font:inherit;background:#a6cc76;color:#1b2613;border:1px solid #a6cc76;border-radius:4px;padding:5px 12px;cursor:pointer;white-space:nowrap;font-weight:600}
+#wide-studio-workspace button[data-action="import"]:hover {background:#badb91}
+#wide-studio-workspace button[data-action="import"]:disabled {opacity:.4;cursor:default}
+#wide-studio-workspace button[data-action="import"]:focus-visible {outline:2px solid #c3e59a;outline-offset:2px}
+
+.ws-quick-bar {display:flex;align-items:center;gap:6px}
+.ws-divider {width:1px;height:18px;background:#353b43;margin:0 2px}
+.ws-folder {position:relative}
+.ws-folder-trigger {
+  font:inherit;background:#242830;color:#c9d1d9;border:1px solid #363c46;
+  border-radius:4px;padding:4px 9px;cursor:pointer;display:flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:500;white-space:nowrap;
+}
+.ws-folder-trigger:hover {background:#2d333d;color:#ffffff;border-color:#4a5260}
+.ws-folder-trigger svg {width:11px;height:11px;opacity:.7}
+.ws-folder-menu {
+  position:absolute;top:calc(100% + 4px);left:0;background:#1e2228;
+  border:1px solid #383f4a;border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.5);
+  padding:4px;min-width:180px;z-index:9999;display:none;flex-direction:column;gap:2px;
+}
+.ws-folder.open .ws-folder-menu {display:flex}
+.ws-folder-item {
+  font:inherit;background:transparent;color:#d0d7de;border:0;border-radius:4px;
+  padding:6px 10px;text-align:left;cursor:pointer;display:flex;align-items:center;
+  gap:8px;font-size:12px;width:100%;box-sizing:border-box;white-space:nowrap;
+}
+.ws-folder-item:hover {background:#2b313a;color:#ffffff}
+.ws-folder-item:disabled {opacity:.4;cursor:default}
+
+
+html[data-wide-studio-workspace] #ProjectApp {padding:6px}
+html[data-wide-studio-workspace] #ProjectApp .Panel {border:1px solid #353a43;border-radius:6px;overflow:hidden}
+.ws-region-heading {display:none}
+.ws-marquee-button{margin-left:auto;font:500 11px "Segoe UI",sans-serif;padding:3px 9px;border:1px solid #59634c;background:#30372b;color:#d7e8c3;cursor:pointer}
+.ws-marquee-button[aria-pressed=true]{background:#a6cc76;color:#1b2613}
+.ws-selection-box{position:fixed;z-index:2147482100;pointer-events:none;box-sizing:border-box;border:1px solid #badf88;background:#a6cc7633}
+.ws-marquee-hit{outline:2px solid #c6e99b!important;outline-offset:-2px}
+.ws-selection-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:2147482200;pointer-events:none;max-width:80vw;background:#263020;color:#e4f3d3;border:1px solid #6c8453;border-radius:5px;padding:8px 14px;font:12px/1.4 "Segoe UI",sans-serif}
+.ws-selection-toast[hidden]{display:none}
+html[data-ws-marquee] #ProjectApp :is(.clipsContainer,.TimelineClipContainer,.MediaListView>.container,.MediaView){cursor:crosshair!important}
+html[data-wide-studio-workspace] #ProjectApp .ws-region-heading {
+  display:flex;align-items:center;flex:0 0 38px;box-sizing:border-box;margin:-12px -12px 10px;padding:0 14px;
+  background:#292d34;border-bottom:1px solid #393f48;font-size:12px;font-weight:600;color:#dce1e8;
+}
+html[data-wide-studio-workspace] #ProjectApp .PanelContent {padding:12px;margin:0;flex-direction:column;min-width:0}
+html[data-wide-studio-workspace] #ProjectApp .PanelContent > .container {min-height:0;height:auto;flex:1}
+html[data-wide-studio-workspace] #ProjectApp .PreviewPanel {background:#1b1e23}
+html[data-wide-studio-workspace] #ProjectApp .TimelinePanel {--cornerHeight:44px;--cornerWidth:168px}
+html[data-wide-studio-workspace] #ProjectApp .Timeline {--emptyLayerHeight:52px;--timelineLineHeight:22px}
+html[data-wide-studio-workspace] #ProjectApp .MenuBar > .container {min-height:32px;background:#1c1f24;border-radius:4px}
+html[data-wide-studio-workspace] #ProjectApp .LayoutResizer:hover {background:#8db65b}
+html[data-wide-studio-workspace] #ProjectApp .MediaListView.empty > .importFiles {border:1px dashed #505965;border-radius:8px;width:100%;padding:26px 12px;color:#bcc5d1}
+html[data-wide-studio-workspace] #ProjectApp .ExplorerButton {border-radius:4px;margin-block:3px}
+html[data-wide-studio-layout="simple"] #ProjectApp button {font-family:inherit;border-radius:4px}
+html[data-wide-studio-layout="simple"] #ProjectApp :is(button,input,select,textarea):focus-visible {outline:2px solid #b9dd8e;outline-offset:2px}
+html[data-wide-studio-layout="simple"] #ProjectApp .TimeView input {color:#c3e09f;font-family:Consolas,monospace;font-variant-numeric:tabular-nums}
+html[data-wide-studio-layout="simple"] #ProjectApp .ProjectTime .frame {color:#a6aaa6}
+html[data-wide-studio-layout="simple"] #ProjectApp .ProjectMetadataView .rowContainer {padding-block:5px;border-bottom:1px solid #ffffff08}
+html[data-wide-studio-layout="simple"] #ProjectApp .ExplorerButton .label {color:#e2e5e9}
+html[data-wide-studio-layout="simple"] #ProjectApp .ExplorerButton .extra {color:#aeb7c4}
+@media(min-width:1100px) {html[data-wide-studio-docked] #ProjectApp {right:360px}}
+
+.ws-inspector-tabs {display:flex;align-self:stretch;gap:8px;align-items:stretch;min-width:0}
+html[data-wide-studio-workspace] #ProjectApp .ws-inspector-tabs button {font:600 12px "Segoe UI",system-ui,sans-serif;color:#aab3bf;background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;padding:0 3px;cursor:pointer;white-space:nowrap}
+html[data-wide-studio-workspace] #ProjectApp .ws-inspector-tabs button[aria-selected="true"] {color:#d8edbd;border-bottom-color:#a6cc76}
+.ws-assisted-panel {display:none}
+html[data-wide-studio-workspace] #ProjectApp .ExplorerPanel[data-ws-assisted="true"] > .container {display:none}
+html[data-wide-studio-workspace] #ProjectApp .ws-assisted-panel:not([hidden]) {display:flex;position:relative;flex:1;min-height:0;margin:-10px -12px -12px}
+.ws-assisted-frame {border:0;width:100%;height:100%;flex:1;min-height:0;background:#23262c}
+.ws-assisted-error {position:absolute;inset:12px;color:#f2c2ba;font:12px/1.5 system-ui;background:#23262c}
+html:not([data-wide-studio-workspace]) #ProjectApp .ExplorerPanel > .container[hidden] {display:flex}
+
+html[data-wide-studio-workspace] .MenuBar .ws-user-hidden{display:none!important}
+.ws-action-status{font-size:11px;color:#ffc8bd;max-width:220px;white-space:normal}
+.ws-customize{background:#252a32;color:#e5e9ee;border:1px solid #66717f;border-radius:8px;width:min(600px,90vw);max-height:85vh;overflow:auto;padding:18px;font:13px/1.5 system-ui}
+.ws-customize h2{margin:0 0 12px}.ws-customize label{display:block;margin:7px 0}.ws-customize select,.ws-customize input,.ws-customize button{font:inherit;margin:3px;padding:5px;background:#303946;color:#e5e9ee;border:1px solid #66717f;border-radius:4px}.ws-customize input[type=checkbox]{width:auto}
+.ws-drive-panel,.ws-extract-panel{display:none}
+html[data-wide-studio-workspace] #ProjectApp .MediaPanel[data-ws-drive=true]>.container{display:none}
+html[data-wide-studio-workspace] #ProjectApp .ws-drive-panel:not([hidden]),html[data-wide-studio-workspace] #ProjectApp .ws-extract-panel:not([hidden]){display:flex;flex:1;min-height:0;margin:-10px -12px -12px}
+html:not([data-wide-studio-workspace]) #ProjectApp .MediaPanel>.container[hidden]{display:flex}
+.ws-drive-drop-marker{position:fixed;width:2px;background:#c5ed92;box-shadow:0 0 8px #b9e285;pointer-events:none;z-index:2147482000}.ws-drive-drop-marker:before{content:"Soltar aqui";position:absolute;bottom:100%;left:-30px;background:#283323;color:#d8f1b8;padding:4px 8px;border-radius:4px;white-space:nowrap;font:11px system-ui}.ws-drive-drop-toast{position:fixed;bottom:20px;right:20px;max-width:430px;background:#253025;color:#daedc6;border:1px solid #91b369;border-radius:6px;padding:12px 16px;font:12px system-ui;z-index:2147482000}.ws-drive-drop-marker[hidden],.ws-drive-drop-toast[hidden]{display:none}

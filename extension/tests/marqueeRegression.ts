@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import {Window} from 'happy-dom';
+import {applyMarqueeSelection,selectionRect,intersects,installMarqueeSelection} from '../src/content/marqueeSelection';
+import {normalizeNativeProject} from '../src/bridge/snapshotNormalizer';
+const win=new Window({url:'https://wide.video/app/1.7.12/'});
+for(const key of ['window','document','Element','HTMLElement','MouseEvent','Event','KeyboardEvent','PointerEvent'])Object.defineProperty(globalThis,key,{value:key==='window'?win:(win as any)[key],configurable:true});
+Object.defineProperty(globalThis,'requestAnimationFrame',{value:(callback:any)=>setTimeout(callback,0),configurable:true});
+const doc=win.document;doc.body.innerHTML='<div id="ProjectApp"><div class="MediaPanel"></div><div class="Timeline"><div class="clipsContainer"></div></div><button data-ws-marquee-toggle aria-pressed="false">Select</button></div>';
+const root=doc.querySelector<HTMLElement>('#ProjectApp')!,panel=root.querySelector('.MediaPanel') as any;
+const clips=[0,1,2].map(i=>({load:{source:'text',text:String(i)}})),medias=[{},{}];
+const p:any={metadata:{appVersion:'1.7.12',createdTime:1,version:7},presentation:{layer:[{name:'one',clip:clips}],scene:{duration:60,frameRate:30,canvas:{width:1920,height:1080}}},mediaList:medias,selection:{kind:'empty'},activity:{time:0}};
+(root as any).project=p;panel.init={project:p};
+const set=(items:Set<any>,single:string,multiple:string)=>{p.selection=items.size?{kind:items.size===1?single:multiple,value:items.size===1?[...items][0]:items}:{kind:'empty'};};
+panel.onMediaListSelectMedia=(media:any)=>set(new Set(media?[media]:[]),'media','medias');panel.onMediaListSelectMedias=(items:Set<any>)=>set(items,'media','medias');
+const nodes=clips.map(clip=>{const node=doc.createElement('div') as any;node.className='TimelineClipContainer';node.init={project:p,clip};node.onClick=(event:MouseEvent)=>{assert.ok(event.ctrlKey||event.metaKey);const items=new Set(p.selection.kind==='clips'?p.selection.value:p.selection.kind==='clip'?[p.selection.value]:[]);items.has(clip)?items.delete(clip):items.add(clip);set(items,'clip','clips');};root.querySelector('.clipsContainer')!.append(node);return node;});
+const mediaNodes=medias.map(media=>{const node=doc.createElement('div') as any;node.init={project:p,media};node.data={disabled:false};root.append(node);return node;});
+assert.deepEqual(selectionRect(20,30,5,10),{left:5,top:10,right:20,bottom:30});assert.ok(intersects(selectionRect(0,0,10,10),selectionRect(5,5,20,20)));assert.ok(!intersects(selectionRect(0,0,10,10),selectionRect(10,0,20,10)));
+assert.ok(!intersects(selectionRect(5,5,5,5),selectionRect(0,0,10,10)),'collapsed rectangle selects nothing');
+const presentation=JSON.stringify(p.presentation);assert.equal((await applyMarqueeSelection(root,'clips',nodes.slice(0,2),false)).count,2);assert.equal(p.selection.kind,'clips');
+assert.equal((await applyMarqueeSelection(root,'clips',[nodes[2]],true)).count,3,'add keeps selection outside the rectangle');
+assert.equal((await applyMarqueeSelection(root,'clips',[nodes[1]],false)).count,1,'replace clears old selection');
+(p.presentation.layer[0] as any).locked=true;await assert.rejects(()=>applyMarqueeSelection(root,'clips',[nodes[0]],false),/mudou/);assert.equal(p.selection.value,clips[1]);delete p.presentation.layer[0].locked;
+assert.equal((await applyMarqueeSelection(root,'medias',mediaNodes,false)).count,2);assert.equal(p.selection.kind,'medias');assert.equal(p.metadata.version,7);assert.equal(JSON.stringify(p.presentation),presentation,'selection never edits timeline content');
+await applyMarqueeSelection(root,'clips',nodes.slice(0,2),false);const snapshot=normalizeNativeProject(p,'fixture');assert.equal(snapshot.selection.kind,'multiple');assert.equal(snapshot.selection.clipIds.length,2);
+const undo=installMarqueeSelection();doc.querySelector<HTMLElement>('[data-ws-marquee-toggle]')!.click();assert.ok(doc.documentElement.hasAttribute('data-ws-marquee'));doc.querySelector<HTMLElement>('[data-ws-marquee-toggle]')!.click();assert.ok(!doc.documentElement.hasAttribute('data-ws-marquee'));
+doc.querySelector<HTMLElement>('[data-ws-marquee-toggle]')!.click();doc.dispatchEvent(new win.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));assert.ok(!doc.documentElement.hasAttribute('data-ws-marquee'));assert.equal(p.selection.value.size,2,'Escape never changes native selection');undo();
+const removeDouble=installMarqueeSelection();doc.documentElement.setAttribute('data-wide-studio-workspace','');
+const blank=root.querySelector('.clipsContainer')!;
+for(const selection of [{kind:'layer',value:p.presentation.layer[0]},{kind:'clips',value:new Set(clips)}]){
+ p.selection=selection;blank.dispatchEvent(new win.MouseEvent('dblclick',{bubbles:true,cancelable:true,button:0}));assert.equal(p.selection.kind,'empty','double click empty timeline clears native layer/group');
+}
+p.selection={kind:'layer',value:p.presentation.layer[0]};for(let i=0;i<2;i++)blank.dispatchEvent(new win.MouseEvent('click',{bubbles:true,cancelable:true,button:0,detail:1,clientX:40,clientY:40}));assert.equal(p.selection.kind,'empty','two clicks clear even when Chromium omits dblclick after prevented pointerdown');
+p.selection={kind:'clip',value:clips[0]};nodes[0].dispatchEvent(new win.MouseEvent('dblclick',{bubbles:true,cancelable:true,button:0}));assert.equal(p.selection.kind,'clip','clip double click remains native');
+assert.equal(p.metadata.version,7);assert.equal(JSON.stringify(p.presentation),presentation);removeDouble();
+const removeAgain=installMarqueeSelection();installMarqueeSelection();removeAgain();(win as any).__WIDE_STUDIO_MARQUEE_UNINSTALL__?.();
+await win.happyDOM.close();console.log('Marquee selection: native groups, additive/replace, locked guard, unchanged timeline, multiple snapshot, toggle and Escape passed.');

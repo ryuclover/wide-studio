@@ -1,0 +1,29 @@
+{
+  "name": "wide-studio-extension",
+  "version": "0.8.3",
+  "description": "Controles locais, pontos persistentes e interface simples para wide.video",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc && vite build && vite build --config vite.content.config.ts && vite build --config vite.main.config.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx tests/evaluationSuite.ts && tsx tests/regression.ts && tsx tests/backgroundRegression.ts && tsx tests/pointsRegression.ts && tsx tests/overlayRegression.ts && tsx tests/workspaceRegression.ts && tsx tests/m0m1SnapshotRegression.ts && tsx tests/step4IntegrationRegression.ts && tsx tests/bridgeBlockersRegression.ts && tsx tests/menuDriveRegression.ts && tsx tests/driveDropRegression.ts && tsx tests/extractRegression.ts && tsx tests/mediaTabsRegression.ts && tsx tests/extractWebRegression.ts && tsx tests/marqueeRegression.ts && tsx tests/extractTransferRegression.ts",
+    "test:ui": "tsx tests/uiRegression.tsx && tsx tests/assistantRegression.tsx && tsx tests/driveUiRegression.tsx && tsx tests/extractUiRegression.tsx",
+    "release": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release.ps1"
+  },
+  "dependencies": {
+    "preact": "^10.25.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@preact/preset-vite": "^2.10.1",
+    "@puppeteer/browsers": "^3.2.6",
+    "@types/chrome": "^0.0.308",
+    "chrome-devtools-mcp": "^1.12.0",
+    "happy-dom": "^21.0.4",
+    "tsx": "^4.23.15",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0"
+  }
+}

@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import {Window} from 'happy-dom';
+import {transferWebsite} from '../src/extract/websites';
+import {YOUTUBE_MAX_BYTES,EXTRACT_CHUNK_BYTES} from '../src/extract/limits';
+const win=new Window({url:'https://wide.video/app/1.7.12/'});
+for(const key of ['window','document','File','DataTransfer','DragEvent'])Object.defineProperty(globalThis,key,{value:key==='window'?win:(win as any)[key],configurable:true});
+Object.defineProperty(globalThis,'DragEvent',{value:class extends win.Event {dataTransfer:any;constructor(type:string,init:any){super(type,init);this.dataTransfer=init.dataTransfer;}},configurable:true});
+const {extractionTransfer}=await import('../src/content/importMedia');
+const project='fixture',transferId='12345678-1234-1234-1234-123456789abc';
+const message=(type:string,extra:any={})=>({type,transferId,expectedProjectId:project,...extra});
+win.document.body.innerHTML='<div id="ProjectApp"><div class="MediaListView"></div></div>';
+let importedSize=0;
+win.document.querySelector('.MediaListView')!.addEventListener('drop',(event:any)=>{const file=event.dataTransfer.files[0];importedSize=file.size;const view=win.document.createElement('div');view.className='MediaView';view.title=file.name;event.currentTarget.append(view);});
+const original=globalThis.fetch;
+try{
+ const bytes=new Uint8Array(21*1024*1024);bytes.set([102,116,121,112],4);
+ globalThis.fetch=async()=>new Response(bytes,{headers:{'content-type':'video/mp4','content-length':String(bytes.length)}});
+ await extractionTransfer(message('EXTRACT_IMPORT_BEGIN',{name:'long.mp4'}),project);let index=0;
+ const size=await transferWebsite('https://tubdown.com/api/jobs/'+transferId+'/file',YOUTUBE_MAX_BYTES,async base64=>{assert.ok(base64.length<=Math.ceil(EXTRACT_CHUNK_BYTES/3)*4);await extractionTransfer(message('EXTRACT_IMPORT_CHUNK',{base64,index:index++}),project);});
+ assert.ok(index>80);assert.equal(size,bytes.length);
+ assert.equal((await extractionTransfer(message('EXTRACT_IMPORT_FINISH',{bytes:size}),project) as any).imported,true);assert.equal(importedSize,bytes.length,'file above old 20 MB limit imports intact');
+ await extractionTransfer(message('EXTRACT_IMPORT_BEGIN',{name:'bad.mp4'}),project);
+ await assert.rejects(()=>extractionTransfer(message('EXTRACT_IMPORT_CHUNK',{index:1,base64:'AAAA'}),project),/inválida/);
+ await extractionTransfer(message('EXTRACT_IMPORT_BEGIN',{name:'changed.mp4'}),project);
+ await assert.rejects(()=>extractionTransfer(message('EXTRACT_IMPORT_CHUNK',{index:0,base64:'AAAA'}),'another'),/projeto mudou/);
+ await extractionTransfer(message('EXTRACT_IMPORT_BEGIN',{name:'incomplete.mp4'}),project);
+ await assert.rejects(()=>extractionTransfer(message('EXTRACT_IMPORT_FINISH',{bytes:100}),project),/incompleto/);
+ globalThis.fetch=async()=>new Response('x',{headers:{'content-type':'video/mp4','content-length':String(YOUTUBE_MAX_BYTES+1)}});
+ await assert.rejects(()=>transferWebsite('https://tubdown.com/api/jobs/'+transferId+'/file',YOUTUBE_MAX_BYTES,async()=>assert.fail()),/200 MB/);
+ globalThis.fetch=async()=>new Response(new Uint8Array(120),{headers:{'content-type':'video/mp4'}});
+ await assert.rejects(()=>transferWebsite('https://tubdown.com/api/jobs/'+transferId+'/file',YOUTUBE_MAX_BYTES,async()=>assert.fail()),/válido/);
+}finally{globalThis.fetch=original;await win.happyDOM.close();}
+console.log('Extraction transfer: 21 MB intact, bounded chunks, size limit, MP4 validation, order, incomplete and project-switch guards passed.');

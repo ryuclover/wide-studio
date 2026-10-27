@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {extractionUrl,extractionRange,helperRequest} from '../src/extract/client';
+assert.equal(extractionUrl('https://youtu.be/BaW_jenozKc?t=3'),'https://www.youtube.com/watch?v=BaW_jenozKc');
+assert.equal(extractionUrl('https://www.instagram.com/reel/Test_123/?igsh=example'),'https://www.instagram.com/p/Test_123/');
+assert.equal(extractionUrl('https://twitter.com/example/status/123456789/video/1'),'https://x.com/i/status/123456789');
+for(const url of ['https://youtube.com.evil.com/watch?v=BaW_jenozKc','https://evil@youtube.com/watch?v=BaW_jenozKc','http://youtube.com/watch?v=BaW_jenozKc','https://127.0.0.1/a.mp4','file:///test','https://www.youtube.com/playlist?list=test','https://instagram.com/profile'])assert.throws(()=>extractionUrl(url));
+for(const [start,end]of [[-1,20],[0,91],[10,2],[NaN,5],[Infinity,10]])assert.throws(()=>extractionRange(start,end));
+assert.deepEqual(extractionRange(1,10),{start:1,end:10});
+let calls=0;(globalThis as any).fetch=async()=>{calls++;return new Response(JSON.stringify({error:'Código inválido'}),{status:401,headers:{'Content-Type':'application/json'}});};
+await assert.rejects(helperRequest('short','/health'));await assert.rejects(helperRequest('a'.repeat(40),'/evil'));assert.equal(calls,0);
+await assert.rejects(helperRequest('a'.repeat(40),'/health'),/Código inválido/);
+(globalThis as any).fetch=async()=>new Response('x',{status:200,headers:{'Content-Type':'video/mp4','Content-Length':String(21*1024*1024)}});
+await assert.rejects(helperRequest('a'.repeat(40),'/jobs/'+'a'.repeat(32)+'/media'),/20 MB/);
+console.log('Extraction regression passed: social URL allowlist, range bounds, fixed helper endpoint, token and size validation.');

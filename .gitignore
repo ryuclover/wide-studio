@@ -1,0 +1,26 @@
+extension/node_modules/
+extension/.browser/
+extension/dist/
+release/
+*.log
+.env
+.env.*
+.local/
+extract-local.json
+companion/.venv/
+companion/__pycache__/
+
+# Public upstream assets retained only for local investigation
+docs/mapping/raw/
+
+# Local credentials, runtimes and diagnostic captures
+**/.local/
+**/.venv/
+**/__pycache__/
+*.pyc
+connection.json
+*.pem
+*.key
+# Investigation dumps are local; reviewed product screenshots live in docs/screenshots/.
+docs/evidence/
+docs/mapping/

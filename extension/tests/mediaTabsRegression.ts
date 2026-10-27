@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {Window} from 'happy-dom';
+const win=new Window({url:'https://wide.video/app/1.7.12/'});Object.defineProperty(globalThis,'document',{value:win.document,configurable:true});Object.defineProperty(globalThis,'window',{value:win,configurable:true});Object.defineProperty(globalThis,'Event',{value:win.Event,configurable:true});
+Object.defineProperty(globalThis,'chrome',{configurable:true,value:{runtime:{getURL:()=> 'chrome-extension://test/',sendMessage:async(m:any)=>({success:true,data:{url:'chrome-extension://test/'+(m.type==='SW_GET_EXTRACT_URL'?'extract':'drive')+'.html?editorTabId=1'}})}}});
+const {mountDriveTab}=await import('../src/content/driveTab');
+const media=win.document.createElement('section'),heading=win.document.createElement('div');media.innerHTML='<div class="container"><input value="preserved"></div>';media.prepend(heading);win.document.body.append(media);const native=media.querySelector<HTMLElement>('.container')!;
+mountDriveTab(media as any,heading as any);const buttons=[...heading.querySelectorAll('button')];assert.deepEqual(buttons.map(b=>b.textContent),['Biblioteca','Drive','Extrair']);
+buttons[2].click();await new Promise(r=>setTimeout(r,0));assert.ok(native.hidden);assert.equal(media.querySelector<HTMLIFrameElement>('.ws-extract-panel iframe')!.src,'chrome-extension://test/extract.html?editorTabId=1');assert.ok(media.querySelector<HTMLElement>('.ws-drive-panel')!.hidden);
+buttons[2].dispatchEvent(new win.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert.equal(native.hidden,false,'keyboard wraps to Biblioteca');assert.equal(media.querySelector('input')!.value,'preserved');
+await win.happyDOM.close();console.log('Media tabs passed: Biblioteca/Drive/Extrair, lazy frame and native state preserved.');

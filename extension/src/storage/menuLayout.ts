@@ -1,0 +1,5 @@
+import {z} from 'zod';
+export const ids=['split','rippleDelete','undo','silenceRemover','captionsGenerator','addText','exportVideo','exportScreenshot'] as const;
+export const MenuLayoutSchema=z.object({folders:z.array(z.object({id:z.string().min(1).max(60),name:z.string().trim().min(1).max(30),actions:z.array(z.enum(ids)).max(8)}).strict()).min(1).max(10),hiddenMenus:z.array(z.enum(['ProjectMenu','EditMenu','MediaMenu','SmartToolsMenu','HelpMenu','buyCoffee'])).max(6)}).strict().refine(data=>new Set(data.folders.map(f=>f.id)).size===data.folders.length && new Set(data.folders.flatMap(f=>f.actions)).size===data.folders.flatMap(f=>f.actions).length);
+export type MenuLayout=z.infer<typeof MenuLayoutSchema>;
+export const defaultMenuLayout:MenuLayout={folders:[{id:'edit',name:'Edição',actions:['split','rippleDelete','undo']},{id:'audio',name:'IA & Áudio',actions:['silenceRemover','captionsGenerator','addText']},{id:'export',name:'Exportar',actions:['exportVideo','exportScreenshot']}],hiddenMenus:['buyCoffee']};
