@@ -554,3 +554,34 @@ O arquivo chega por partes de até 256 KiB, com ordem, projeto, tamanho e assina
 Validação: limites 10–30 minutos, 30:00 aceito e 30:01 recusado; 200 MiB de limite; importação sintética de 21 MiB integral, ordem de partes, MP4 inválido, arquivo incompleto e troca de projeto; regressões completas e teste real pelo navegador. A disponibilidade do serviço e o tamanho do arquivo continuam determinantes.
 
 Resultado real: Tears of Steel (12:14), importado integralmente com vídeo e áudio na Biblioteca; nenhuma cópia em Downloads; evidências em docs/evidence/extract-web-youtube.json e .png. A cópia descartável de testes concede somente o domínio do provedor para evitar o diálogo nativo inacessível no modo headless; dist/release conservam permissões opcionais.
+
+
+## 0.9.0 — setas e Histórico
+
+Setas de desfazer/refazer no topo, depois de Importar mídia. Nova aba Histórico depois de Edição assistida, com estado atual, nomes nativos das alterações (tradução dos motivos mais comuns) e etapas desfeitas. Dados observados de EditMenu.data.versionPoint no MAIN world; execução pelo menu nativo, sem escrever presentation ou fabricar snapshots. A lista é limitada a 20 estados observados por sessão/projeto, acompanha alterações normais e descarta versões futuras após uma nova edição. A aba ativa é preservada quando o editor recria a interface ao restaurar.
+
+Validação real: criação de três clipes em duas camadas, edição de movimento, desfazer, refazer, aba mantida e nova edição descartando o refazer. Evidências: docs/evidence/history-live.json e history-live.png. Testes de limite, ramificação e navegação acessível em historyRegression.ts.
+
+Observação do editor 1.7.12: desfazer Add filter Position pode recriar automaticamente o filtro ao selecionar/exibir o clipe, fazendo a versão retornar ao mesmo número. A extensão detecta a mudança do estado nativo e informa que houve uma alteração automática, sem confirmar restauração inexistente. Não aumenta o limite nativo nem persiste toda a história entre sessões.
+
+
+## Correção 0.9.1 — desfazer/refazer sem passagem pelo menu
+
+As setas agora acionam diretamente o callback nativo habilitado, sem abrir/fechar Edit. Preservação da agulha por controle nativo de tempo, rolagem da timeline/Biblioteca/inspetor, rolagem interna do Histórico e foco das setas. A renderização do Histórico conserva scrollTop quando troca suas linhas. Não altera presentation, não cria histórico paralelo nem chama reload/location.
+
+Teste real: zero navegações do frame principal, zero menus abertos; antes/depois de desfazer e refazer: tempo 6.5 s, escala 1.331, scroll horizontal 120 px, scroll do Histórico 35 px, todos iguais. Movimento, ramificação do refazer e troca de projeto continuam validados. Evidência: docs/evidence/history-live.json.
+
+Limite: o mecanismo nativo do wide.video restaura snapshots reabrindo internamente o projeto (fecha/resolve/recria componentes). Pode haver uma breve reconstrução e processamento de mídia. A extensão reduz efeitos adicionais e perda de contexto, mas não substitui esse mecanismo por um motor próprio de desfazer em memória.
+
+
+## 0.10.0 — desfazer direto e extração independente do service worker
+
+Histórico lógico de até 20 estados reais observados, mantendo os snapshots nativos para operações não cobertas. Movimento compatível usa o comando nativo NY capturado de eventos reais, com posições do pointerdown, verificação estrutural da cena/camadas/clipes e confirmação das posições e do save assíncrono. Sem escrever presentation, metadata ou inventar arquivos de projeto. Undo/redo de movimento não troca o objeto do projeto. Troca de camada, alteração de duração da cena, filtros complexos ou mudanças não reconhecidas usam snapshot nativo. Os comandos inversos salvos pelo editor não viram novas ações no histórico lógico; o fallback aponta ao snapshot lógico correto, evitando desfazer uma operação inversa por engano. Setas, teclado nativo e menu Edit ficam alinhados.
+
+Extração: SW_WEB_IMPORT responde com ID imediatamente. Uma página interna extract-worker.html, aberta em segundo plano, resolve o serviço, transfere partes e confirma importação. SW_WEB_STATUS apenas consulta armazenamento de sessão. Reabrir o iframe não reinicia a tarefa. Request ID é idempotente e vinculado à aba/projeto; identidade persistente permite reconstrução do mesmo projeto. Troca para outro projeto cancela a importação. Fechamento durante importação resulta em estado desconhecido e exige conferir a Biblioteca; não há repetição automática. Preparação do YouTube pode esperar até 15 minutos; download até 10 minutos, ambos com limites de tamanho e progresso. Nenhum conector ou nova permissão é necessário.
+
+Validação real: vídeo do usuário https://www.youtube.com/watch?v=KjBJjVghsmM, The INFINITE Reroll Incident, aproximadamente 20:44, importado integralmente com áudio em 854×480, sem download extra. Evidência em docs/evidence/extract-user-gameplay.json/png. O serviço externo apresentou lentidão em repetições; não é possível garantir disponibilidade. Teste de controle de 19 segundos encerrou à força o service worker da extensão e recarregou Extrair durante o trabalho: terminou com um único arquivo e zero Downloads; evidência extract-web-youtube.json.
+
+Histórico real: mover individual/grupo em duas camadas, undo/redo exatos sem novo objeto de projeto, zoom/agulha/rolagens preservados; nova edição descarta refazer; excluir grupo, desfazer/refazer por snapshot e trocar de projeto continuam coerentes. Testes unitários cobrem barreira de save assíncrono, ramificação, limite e bloqueio de solicitações concorrentes.
+
+Próximos passos: ampliar restauração incremental a mais operações somente após mapear inversas e validação; adicionar cancelamento explícito da extração na interface; avaliar provedores alternativos com testes e permissões específicas caso a instabilidade do serviço persista.

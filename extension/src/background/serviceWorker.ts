@@ -1,6 +1,4 @@
-import {YOUTUBE_MAX_BYTES} from '../extract/limits';
-import {EXTRACT_MAX_BYTES} from '../extract/client';
-import {resolveWebsite,transferWebsite,websiteOrigins} from '../extract/websites';
+import {startWebJob,getWebJob} from '../extract/jobs';
 
 import { StorageService } from '../storage';
 
@@ -296,29 +294,12 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
 
       switch (message?.type) {
 
+        case 'SW_WEB_STATUS': {
+          const tabId=await getEditorTab();reply({success:true,data:await getWebJob(tabId,message.jobId)});return;
+        }
         case 'SW_WEB_IMPORT': {
-
           const tabId=await getEditorTab();if(driveJobs.has(tabId))throw new Error('Aguarde a importação atual.');
-
-          driveJobs.add(tabId);try {
-
-            const url=extractionUrl(message.url),origins=websiteOrigins(url);
-
-            if(!await chrome.permissions.contains({origins}))throw new Error('Permita o acesso ao site de extração para continuar.');
-
-            const context=await send<EditorContext>(tabId,{type:'GET_CONTEXT'}),project=context.project.id;
-
-            const item=await resolveWebsite(url),transferId=crypto.randomUUID();let result,index=0;
-            try{
-              await send(tabId,{type:'EXTRACT_IMPORT_BEGIN',transferId,expectedProjectId:project,name:item.name});
-              const bytes=await transferWebsite(item.url,new URL(url).hostname==='www.youtube.com'?YOUTUBE_MAX_BYTES:EXTRACT_MAX_BYTES,async base64=>{await send(tabId,{type:'EXTRACT_IMPORT_CHUNK',transferId,expectedProjectId:project,index:index++,base64});});
-              result=await send(tabId,{type:'EXTRACT_IMPORT_FINISH',transferId,expectedProjectId:project,bytes});
-            }catch(error){await send(tabId,{type:'EXTRACT_IMPORT_ABORT',transferId,expectedProjectId:project}).catch(()=>{});throw error;}
-
-            reply({success:true,data:result});return;
-
-          }finally{driveJobs.delete(tabId);}
-
+          driveJobs.add(tabId);try{const context=await send<EditorContext>(tabId,{type:'GET_CONTEXT'});const job=await startWebJob(tabId,context.project.persistentId||context.project.id,message.url,message.requestId,context.project.persistentId?'persistent':'instance');reply({success:true,data:job});return;}finally{driveJobs.delete(tabId);}
         }
 
         case 'SW_EXTRACT_START': {

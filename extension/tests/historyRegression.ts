@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import {mergeHistory,historyLabel} from '../src/content/historyControls';
+const entries=new Map();const a={version:1,reasons:['Add clip']},b={version:2,reasons:['Move clip']},c={version:3,reasons:['Delete clip']};
+mergeHistory(entries,{previous:a,current:b,next:c});assert.equal(entries.size,3);assert.equal(historyLabel(entries.get(2).reasons),'Move clip');assert.equal(historyLabel(['Add clip','Update scene']),'Adicionar clipe · Ajustar cena');
+mergeHistory(entries,{current:c,previous:b},{current:b,next:c});assert.equal(entries.size,3,'redo preserves timeline');
+const replacement={version:2,reasons:['Add text']};mergeHistory(entries,{current:replacement,previous:a},{current:a,next:b});assert.equal(entries.has(3),false,'new branch removes discarded redo');assert.equal(entries.get(2).reasons[0],'Add text');
+for(let i=3;i<40;i++)mergeHistory(entries,{current:{version:i,reasons:['Edit']}});assert.equal(entries.size,20);assert.equal(Math.min(...entries.keys()),20);
+console.log('History: native version labels, redo, branch invalidation and 20-state bound passed.');
+
+const {Window}=await import('happy-dom');const win=new Window({url:'https://wide.video/app/1.7.12/'});
+for(const name of ['window','document','Event'])Object.defineProperty(globalThis,name,{value:name==='window'?win:(win as any)[name],configurable:true});
+let requests=0;(globalThis as any).chrome={runtime:{sendMessage:async()=>{requests++;return {success:true,data:{url:'chrome-extension://fixture/assistant.html?editorTabId=1'}};},getURL:()=> 'chrome-extension://fixture/'}};
+win.document.body.innerHTML='<div class="ExplorerPanel"><div class="ws-region-heading"></div><div class="container">Native properties</div></div>';
+const {mountAssistedTab}=await import('../src/content/assistedTab');const explorer=win.document.querySelector<HTMLElement>('.ExplorerPanel')!,heading=explorer.querySelector<HTMLElement>('.ws-region-heading')!;mountAssistedTab(explorer,heading);
+assert.equal(heading.querySelectorAll('[role=tab]').length,3);win.document.querySelector<HTMLElement>('#ws-history-tab')!.click();assert.equal(requests,0,'history does not load chat');assert.equal(win.document.querySelector<HTMLElement>('.ws-history-panel')!.hidden,false);assert.equal(explorer.querySelector<HTMLElement>('.container')!.hidden,true);
+win.document.querySelector<HTMLElement>('#ws-history-tab')!.dispatchEvent(new win.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));assert.equal(win.document.querySelector('#ws-properties-tab')!.getAttribute('aria-selected'),'true');assert.equal(explorer.querySelector<HTMLElement>('.container')!.hidden,false);
+const {captureHistoryViewport,restoreHistoryViewport}=await import('../src/content/historyViewport');
+win.document.body.innerHTML='<div id="ProjectApp"><div class="Timeline"><div></div></div><div class="ProjectTime"></div><div class="ws-history-panel"></div></div>';
+const root=win.document.querySelector<HTMLElement>('#ProjectApp')!,timeline=root.querySelector<HTMLElement>('.Timeline')!,history=root.querySelector<HTMLElement>('.ws-history-panel')!,control=root.querySelector('.ProjectTime') as any;
+const project={activity:{time:6.5},presentation:{scene:{duration:20}}};const presentation=JSON.stringify(project.presentation);let nativeTime=0;control.timeView={updateValue:(value:number)=>nativeTime=value};control.onTimeViewChange=()=>project.activity.time=nativeTime;
+timeline.scrollLeft=120;history.scrollTop=35;const saved=captureHistoryViewport(root,project);project.activity.time=0;timeline.scrollLeft=0;history.scrollTop=0;restoreHistoryViewport(root,project,saved);assert.equal(project.activity.time,6.5);assert.equal(timeline.scrollLeft,120);assert.equal(history.scrollTop,35);assert.equal(JSON.stringify(project.presentation),presentation,'view restoration never edits timeline content');
+await win.happyDOM.close();console.log('Inspector: three tabs, lazy chat, native properties and keyboard navigation passed.');

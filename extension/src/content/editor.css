@@ -92,3 +92,12 @@ html[data-wide-studio-workspace] #ProjectApp .MediaPanel[data-ws-drive=true]>.co
 html[data-wide-studio-workspace] #ProjectApp .ws-drive-panel:not([hidden]),html[data-wide-studio-workspace] #ProjectApp .ws-extract-panel:not([hidden]){display:flex;flex:1;min-height:0;margin:-10px -12px -12px}
 html:not([data-wide-studio-workspace]) #ProjectApp .MediaPanel>.container[hidden]{display:flex}
 .ws-drive-drop-marker{position:fixed;width:2px;background:#c5ed92;box-shadow:0 0 8px #b9e285;pointer-events:none;z-index:2147482000}.ws-drive-drop-marker:before{content:"Soltar aqui";position:absolute;bottom:100%;left:-30px;background:#283323;color:#d8f1b8;padding:4px 8px;border-radius:4px;white-space:nowrap;font:11px system-ui}.ws-drive-drop-toast{position:fixed;bottom:20px;right:20px;max-width:430px;background:#253025;color:#daedc6;border:1px solid #91b369;border-radius:6px;padding:12px 16px;font:12px system-ui;z-index:2147482000}.ws-drive-drop-marker[hidden],.ws-drive-drop-toast[hidden]{display:none}
+
+.ws-history-controls{display:flex;gap:3px;align-items:center}
+#wide-studio-workspace .ws-history-controls button{font:23px/1 "Segoe UI",sans-serif;min-width:31px;height:28px;padding:0 5px;color:#dbe4ed;background:#292e36;border:1px solid #424b58;border-radius:4px;cursor:pointer}
+#wide-studio-workspace .ws-history-controls button:disabled{opacity:.35;cursor:default}
+.ws-history-panel{display:none}
+html[data-wide-studio-workspace] #ProjectApp .ws-history-panel:not([hidden]){display:block;overflow:auto;flex:1;min-height:0;font:12px/1.5 "Segoe UI",sans-serif;color:#dce2e9}
+.ws-history-panel h3{margin:4px 0 10px;font-size:14px}.ws-history-note{font-size:11px;color:#aab5c4}.ws-history-status{color:#c3dd9e;font-size:11px}
+.ws-history-list{list-style:none;margin:12px 0;padding:0}.ws-history-list li{padding:10px 9px;border-left:2px solid #48525d;border-bottom:1px solid #ffffff0b}.ws-history-list li[aria-current]{border-left-color:#add27e;background:#313c2c}.ws-history-list strong{display:block;font-size:12px;font-weight:500}.ws-history-list span{font-size:10px;color:#a8b4c3}.ws-history-future{opacity:.5}
+.ws-inspector-tabs{overflow-x:auto;gap:6px}

@@ -1,3 +1,4 @@
+let activeInspector=0;
 export function mountAssistedTab(explorer: HTMLElement, heading: HTMLElement) {
   if (heading.querySelector('[role="tablist"]')) return;
   heading.removeAttribute('role'); heading.removeAttribute('aria-level'); heading.textContent = '';
@@ -8,12 +9,14 @@ export function mountAssistedTab(explorer: HTMLElement, heading: HTMLElement) {
   panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', 'ws-assisted-tab');
   const frame = document.createElement('iframe'); frame.title = 'Edição assistida — chat'; frame.className = 'ws-assisted-frame';
   panel.append(frame); explorer.append(panel);
+  const history=document.createElement('section');history.className='ws-history-panel';history.id='ws-history-panel';history.hidden=true;history.setAttribute('role','tabpanel');history.setAttribute('aria-labelledby','ws-history-tab');explorer.append(history);
   let loading = false;
-  const activate = async (assisted: boolean) => {
-    native.hidden = assisted; panel.hidden = !assisted;
-    explorer.dataset.wsAssisted = String(assisted);
+  const activate = async (selectedIndex: number) => {
+    activeInspector=selectedIndex;const assisted=selectedIndex===1;history.hidden=selectedIndex!==2;
+    native.hidden = selectedIndex!==0; panel.hidden = !assisted;
+    explorer.dataset.wsAssisted = String(selectedIndex!==0);
     for (const [index, tab] of [...tabs.querySelectorAll<HTMLButtonElement>('button')].entries()) {
-      const selected = assisted === (index === 1); tab.setAttribute('aria-selected', String(selected)); tab.tabIndex = selected ? 0 : -1;
+      const selected = selectedIndex === index; tab.setAttribute('aria-selected', String(selected)); tab.tabIndex = selected ? 0 : -1;
     }
     if (assisted && !frame.src && !loading) {
       loading = true;
@@ -30,18 +33,18 @@ export function mountAssistedTab(explorer: HTMLElement, heading: HTMLElement) {
     }
     window.dispatchEvent(new Event('resize'));
   };
-  for (const [index, label] of ['Propriedades', 'Edição assistida'].entries()) {
+  for (const [index, label] of ['Propriedades', 'Edição assistida', 'Histórico'].entries()) {
     const tab = document.createElement('button'); tab.type = 'button'; tab.textContent = label;
-    tab.id = index ? 'ws-assisted-tab' : 'ws-properties-tab'; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', String(index === 0)); tab.tabIndex = index ? -1 : 0;
-    if (index) tab.setAttribute('aria-controls', panel.id);
-    tab.onclick = () => { void activate(index === 1); };
+    tab.id = ['ws-properties-tab','ws-assisted-tab','ws-history-tab'][index]; tab.setAttribute('role', 'tab'); tab.setAttribute('aria-selected', String(index === 0)); tab.tabIndex = index ? -1 : 0;
+    if (index) tab.setAttribute('aria-controls', index===1?panel.id:history.id);
+    tab.onclick = () => { void activate(index); };
     tab.onkeydown = event => {
       if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
-        event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index;
-        tabs.querySelectorAll<HTMLButtonElement>('button')[next].focus(); void activate(next === 1);
+        event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? 2 : (index+(event.key==='ArrowRight'?1:2))%3;
+        tabs.querySelectorAll<HTMLButtonElement>('button')[next].focus(); void activate(next);
       }
     };
     tabs.append(tab);
   }
-  heading.append(tabs);
+  heading.append(tabs);void activate(activeInspector);
 }

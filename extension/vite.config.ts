@@ -29,6 +29,7 @@ export default defineConfig({
         assistant: resolve(__dirname, 'assistant.html'),
         drive: resolve(__dirname, 'drive.html'),
         extract: resolve(__dirname, 'extract.html'),
+        extractWorker: resolve(__dirname, 'extract-worker.html'),
         serviceWorker: resolve(__dirname, 'src/background/serviceWorker.ts')
       },
       output: {

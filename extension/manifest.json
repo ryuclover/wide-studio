@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Wide Studio",
-  "version": "0.8.3",
+  "version": "0.10.0",
   "description": "Controles diretos, pontos persistentes e aparência simples para wide.video.",
   "permissions": [
     "storage",

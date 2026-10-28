@@ -10,16 +10,16 @@ export function youtubeQuality(info:any,id:string){
  const options=Array.isArray(info.video)?info.video.filter((v:any)=>v?.format==='MP4'&&Number.isInteger(v.quality)&&v.quality>=144&&v.quality<=480&&(!v.size||Number.isFinite(v.size)&&v.size>0&&v.size<=YOUTUBE_MAX_BYTES)):[];
  options.sort((a:any,b:any)=>b.quality-a.quality);if(!options.length)throw new Error('O serviço não oferece MP4 de até 480p e 200 MB para esse vídeo.');return options[0].quality as number;
 }
-export async function resolveYoutube(source:string){
+export async function resolveYoutube(source:string,onProvider?:(id:number)=>Promise<void>,onStatus?:(text:string)=>Promise<void>){
  const url=extractionUrl(source),id=new URL(url).searchParams.get('v')!;
  const tab=await chrome.tabs.create({url:'https://tubdown.com/',active:false});if(!tab.id)throw new Error('Nao foi possivel abrir o servico de YouTube.');
- try{const deadline=Date.now()+300000;let submitted=false,quality:number|undefined,selected=false;
+ try{await onProvider?.(tab.id);const deadline=Date.now()+900000;let lastStatus='',submitted=false,quality:number|undefined,selected=false;
  while(Date.now()<deadline){
   const current=await chrome.tabs.get(tab.id);if(current.url&&current.url!=='about:blank'&&!current.url.startsWith('https://tubdown.com/'))throw new Error('O servico redirecionou para outro site.');
   if(!current.url||current.url==='about:blank'||current.status!=='complete'){await new Promise(r=>setTimeout(r,500));continue;}
   const [probe]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:(url:string,submit:boolean,quality:number|null,select:boolean)=>{
    if(document.querySelector('iframe[src*="challenges.cloudflare.com"],.g-recaptcha'))return {blocked:true};
-   for(const selector of ['#dl-error','#r-job-error']){const e=document.querySelector<HTMLElement>(selector);if(e&&!e.hidden&&e.textContent?.trim())return {error:true};}
+   for(const selector of ['#dl-error','#r-job-error']){const e=document.querySelector<HTMLElement>(selector);if(e&&!e.hidden&&e.textContent?.trim())return {error:e.textContent.trim().slice(0,300)};}
    const done=document.querySelector<HTMLElement>('#r-done'),link=document.querySelector<HTMLAnchorElement>('#r-done-link');
    if(done&&!done.hidden&&link?.getAttribute('href'))return {ready:link.href,name:document.querySelector('#r-done-name')?.textContent};
    const field=document.querySelector<HTMLInputElement>('#dl-url'),form=document.querySelector<HTMLFormElement>('#dl-form');
@@ -33,10 +33,11 @@ export async function resolveYoutube(source:string){
     button.click();return {selected:true};
    }
    const parts=(document.querySelector('#r-duration')?.textContent||'').trim().split(':').map(Number);const duration=parts.reduce((n,v)=>n*60+v,0);
-   const video=rows.map(e=>{const size=e.querySelector('[data-f="size"]')?.textContent||'',amount=Number(size.replace(/[^0-9.]/g,''));return {quality:parseInt(e.querySelector('[data-f="label"]')?.textContent||''),format:'MP4',size:amount?amount*(size.includes('GB')?1024*1024*1024:1024*1024):0};});return {duration,video};
+   const video=rows.map(e=>{const size=e.querySelector('[data-f="size"]')?.textContent||'',amount=Number(size.replace(/[^0-9.]/g,''));return {quality:parseInt(e.querySelector('[data-f="label"]')?.textContent||''),format:'MP4',size:amount?amount*(size.includes('GB')?1024*1024*1024:1024*1024):0};});return {duration,video,progress:document.querySelector('#j-label')?.textContent,percent:document.querySelector('#j-pct')?.textContent};
   },args:[url,!submitted,quality??null,quality!==undefined&&!selected]});const data=probe.result as any;
   if(data?.blocked)throw new Error('O site pediu verificacao humana. Nao foi possivel concluir automaticamente.');
-  if(data?.error)throw new Error('O TubDown nao conseguiu preparar esse video. Tente outro link publico.');
+  if(data?.error)throw new Error('O serviço não conseguiu preparar o vídeo. '+(typeof data.error==='string'?data.error:''));
+  if(data?.progress){const label=/Fetching/i.test(data.progress)?'O serviço está baixando do YouTube':/Converting/i.test(data.progress)?'O serviço está preparando o MP4':/queue/i.test(data.progress)?'Na fila do serviço':'Preparando o vídeo no serviço';const text=label+(data.percent?' · '+String(data.percent).slice(0,8):'');if(text!==lastStatus){lastStatus=text;await onStatus?.(text);}}
   if(data?.ready){const name=String(data.name||'YouTube').replace(/[\\/\x00-\x1f:*?"<>|]/g,'_').slice(0,160).replace(/\.mp4$/i,'')+'.mp4';return {url:websiteMediaUrl(data.ready),name};}
   if(data?.submitted)submitted=true;if(data?.selected)selected=true;
   if(quality===undefined&&data?.video?.length&&Number.isFinite(data.duration)&&data.duration>0)quality=youtubeQuality({id,duration:data.duration,video:data.video},id);
@@ -44,13 +45,13 @@ export async function resolveYoutube(source:string){
  }throw new Error('O servico de YouTube demorou demais. Tente novamente mais tarde.');
  }finally{await chrome.tabs.remove(tab.id).catch(()=>{});}
 }
-export async function resolveWebsite(source:string){const url=extractionUrl(source);websiteOrigins(url);
- if(new URL(url).hostname==='www.youtube.com')return resolveYoutube(url);
+export async function resolveWebsite(source:string,onProvider?:(id:number)=>Promise<void>,onStatus?:(text:string)=>Promise<void>){const url=extractionUrl(source);websiteOrigins(url);
+ if(new URL(url).hostname==='www.youtube.com')return resolveYoutube(url,onProvider,onStatus);
  if(new URL(url).hostname==='x.com'){const id=new URL(url).pathname.split('/').at(-1)!;const response=await fetch(`https://api.fxtwitter.com/status/${id}`,{credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(20000)});if(!response.ok)throw new Error('O serviço do X está indisponível. Tente novamente mais tarde.');let data;try{data=JSON.parse(new TextDecoder().decode(await bounded(response,1024*1024)));}catch{throw new Error('Resposta inválida do serviço do X.');}return twitterVideo(data,id);}
  const site='https://snapinsta.ai/';
  // Submit the normal page form; remote page scripts stay inside their own website.
  const tab=await chrome.tabs.create({url:site,active:false});if(!tab.id)throw new Error('Não foi possível abrir o serviço de Instagram.');
- try{const began=Date.now();let submitted=false;while(Date.now()-began<45000){
+ try{await onProvider?.(tab.id);const began=Date.now();let submitted=false;while(Date.now()-began<45000){
   const current=await chrome.tabs.get(tab.id);if(current.url&&current.url!=='about:blank'&&!current.url.startsWith(site))throw new Error('O serviço redirecionou para outro site. Extração interrompida.');
   if(!current.url||current.url==='about:blank'||current.status!=='complete'){await new Promise(r=>setTimeout(r,500));continue;}
   const [probe]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:(source:string,submit:boolean)=>{
@@ -73,7 +74,7 @@ export async function downloadWebsite(url:string){const r=await fetch(websiteMed
 // Stream bounded pieces to the editor rather than putting an entire long video in one runtime message.
 export async function transferWebsite(url:string,max:number,onChunk:(base64:string)=>Promise<void>){
  if(max!==EXTRACT_MAX_BYTES&&max!==YOUTUBE_MAX_BYTES)throw new Error('Limite de extração inválido.');
- const response=await fetch(websiteMediaUrl(url),{credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(180000)});
+ const response=await fetch(websiteMediaUrl(url),{credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(600000)});
  if(!response.ok)throw new Error('O download foi recusado pelo site. Tente novamente.');
  const mime=(response.headers.get('content-type')||'').split(';')[0];
  if(!['video/mp4','application/octet-stream','binary/octet-stream'].includes(mime))throw new Error('O servidor não entregou um MP4.');

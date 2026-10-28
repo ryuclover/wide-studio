@@ -50,7 +50,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({success:true,data:await dropLoadedDriveMedia(message.driveKey,context.project.id,message.dropToken,bridgeClient)});break;
         }
         case 'EXTRACT_IMPORT_BEGIN':case 'EXTRACT_IMPORT_CHUNK':case 'EXTRACT_IMPORT_FINISH':case 'EXTRACT_IMPORT_ABORT': {
-          const context=await adapter.readContext();sendResponse({success:true,data:await extractionTransfer(message,context.project.id)});break;
+          const context=await adapter.readContext();sendResponse({success:true,data:await extractionTransfer(message,message.projectBinding==='persistent'?context.project.persistentId||context.project.id:context.project.id)});break;
         }
         case 'IMPORT_DRIVE_MEDIA': {
           const context=await adapter.readContext();if(context.project.id!==message.expectedProjectId)throw new Error('O projeto mudou durante o download.');
