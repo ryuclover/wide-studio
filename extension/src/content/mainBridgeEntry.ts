@@ -6,3 +6,7 @@ installMarqueeSelection();
 
 import {installHistoryControls} from './historyControls';
 installHistoryControls();
+import {installDirectClipDelete} from './directClipDelete';
+installDirectClipDelete();
+import {installLinkedClips} from './linkedClips';
+installLinkedClips();

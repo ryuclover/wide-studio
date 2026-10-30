@@ -1,5 +1,19 @@
 # Próximos passos — Wide Studio
 
+Atualização 0.13.2: **Vincular clipes** e **Desvincular clipes** também aparecem no menu nativo de botão direito quando a seleção contém mais de um clipe. As ações compartilham as regras dos botões da timeline; um menu aberto para uma seleção antiga não altera a seleção atual. O menu individual de um clipe fora da seleção permanece nativo. Validação: `linkedClipsRegression.ts` e `linkedClipsContextLive.mjs`.
+
+Correção 0.13.1: arrastar sobre espaços vazios da timeline, incluindo `.TimelineGap`, seu botão × e elementos internos, inicia a seleção retangular sem ativar o modo manual. O limite de 6 px distingue arraste de clique; após arrastar, o clique é consumido para impedir exclusão acidental da lacuna. Cliques simples no × e arrastes sobre os próprios clipes mantêm o comportamento nativo. Testes: `marqueeRegression.ts` e `gapSelectionLive.mjs`.
+
+## Vínculos na timeline — 0.13.0
+
+Selecione dois ou mais clipes e use **Vincular**, ao lado de **Selecionar vários**. Arrastar qualquer membro usa o movimento múltiplo nativo, preservando intervalos e camadas. O número azul identifica o conjunto. **Desvincular** remove o vínculo inteiro dos conjuntos selecionados. Grupos sobrepostos são unidos ao vincular novamente.
+
+Movimentos mantêm desfazer/refazer. Criar/remover vínculos é uma preferência local separada do histórico nativo. Cortes, duração, exclusão e movimentação por teclado continuam individuais; esta versão sincroniza o arraste horizontal. Um membro bloqueado impede o movimento do conjunto. O limite inicial considera o membro mais cedo para preservar os intervalos sem atravessar o zero.
+
+Os vínculos são salvos no armazenamento do navegador para esse projeto. Não acompanham exportação, cópia do projeto, outro navegador ou limpeza dos dados do site. Sem um ID público estável para clipes, a restauração compara conteúdo e tempo; referências ambíguas são descartadas para evitar associações incorretas. Após mudanças estruturais como cortes/exclusões, confira os indicadores e refaça o vínculo se necessário.
+
+Validação: `tests/linkedClipsRegression.ts` e `tests/linkedClipsLive.mjs`; este último usa três mídias reais em duas camadas, arraste por mouse, isolamento do terceiro clipe, desfazer/refazer, movimento por qualquer membro, bloqueio, limite inicial, reabertura e desvinculação.
+
 Objetivo: transformar toda a interface do wide.video e criar uma plataforma modular para ferramentas futuras, preservando o motor nativo. Executar na ordem abaixo. Cada etapa só termina quando seu critério de aceite for demonstrado.
 
 ## Prioridade atual — remover silêncios e colocar legendas
@@ -585,3 +599,55 @@ Validação real: vídeo do usuário https://www.youtube.com/watch?v=KjBJjVghsmM
 Histórico real: mover individual/grupo em duas camadas, undo/redo exatos sem novo objeto de projeto, zoom/agulha/rolagens preservados; nova edição descarta refazer; excluir grupo, desfazer/refazer por snapshot e trocar de projeto continuam coerentes. Testes unitários cobrem barreira de save assíncrono, ramificação, limite e bloqueio de solicitações concorrentes.
 
 Próximos passos: ampliar restauração incremental a mais operações somente após mapear inversas e validação; adicionar cancelamento explícito da extração na interface; avaliar provedores alternativos com testes e permissões específicas caso a instabilidade do serviço persista.
+
+## 0.10.1 — confirmação confiável de importação
+
+Falha reproduzida na 0.10.0: Biblioteca com cinco mídias e filtro textual que oculta a nova mídia. A importação nativa ocorre, mas importFile procura aumento de MediaView visível por 60 segundos; o fluxo termina com a mesma mensagem genérica do print. Além disso, FINISH ainda mantinha uma resposta assíncrona aberta durante toda a confirmação e worker.ts apagava a causa original na fase importing.
+
+Correção: WIDE_BRIDGE_IMPORT_RECEIPT lê project.mediaList no MAIN world da 1.7.12. Registra um recibo por UUID, o projeto via WeakRef e mídias anteriores via WeakSet; confirma apenas um novo item com original.file.name/tamanho correspondentes e content.kind valid. probing não é sucesso; invalid preserva a razão nativa. Nome já existente ganha sufixo (2), (3) etc., sem sobrescrever mídia. Filtros/ordenação e nomes de exibição não definem mais o resultado. Um aviso orienta limpar filtros quando a importação ficou oculta.
+
+FINISH passa a iniciar processamento e responder imediatamente. EXTRACT_IMPORT_STATUS consulta recibo de forma curta. Repetir FINISH com o mesmo UUID retorna o estado existente sem novo drop. Perda da resposta final é recuperada por STATUS; não se reenvia o arquivo automaticamente. Mudança de projeto e modal aberto são detectados. Não se fecha diálogo do usuário nem se ignora erro de codec. Análise pode levar até dez minutos, com estado exibido; o motivo real aparece em falha. Recibos são limitados e não guardam projetos fortemente.
+
+Validação: regressões completas, UI, typecheck e build; teste específico com filtro ativo, nome existente, probing assíncrono, codec recusado, mudança de projeto, modal e FINISH idempotente. Teste real do vídeo KjBJjVghsmM em projeto salvo de teste com Biblioteca filtrada: 93.893.860 bytes, 854×480, áudio e vídeo completos (~20:44), zero Downloads. Teste curto separado com reinício do service worker, reabertura de Extrair, filtro ativo, reimportação intencional de mesmo nome e FINISH repetido: exatamente duas importações, segunda com (2), confirmação inicial em cerca de 70 ms. Evidências locais: docs/evidence/extract-long-filtered-0.10.1.json/png e extract-web-youtube.json/png.
+
+Próximos passos: validar esta versão no Opera do usuário com o projeto original. Se falhar, usar a causa detalhada por etapa; o teste controlado não prova qual condição ocorreu nesse projeto. Disponibilidade do serviço externo, quota e suporte do navegador ao codec continuam externos à extensão. Não aumentar os limites de duração/tamanho sem novas medições.
+
+## 0.11.0 — idiomas, barra uniforme e exclusão direta de clipes
+
+Seletor Idioma na barra superior: Original, português brasileiro, inglês, espanhol, francês e alemão. Catálogo local de frases exatas para os controles principais, com fallback original para textos não cobertos; não usa API de tradução nem envia dados do projeto. WeakMaps guardam texto-fonte/renderizado para reverter a escolha e acompanhar rótulos nativos dinâmicos. Não traduz nomes de mídia/camada/projeto, caminhos, campos editáveis, mensagens de chat ou pastas de atalhos personalizadas. A versão 1.7.12 nativa oferece somente inglês/tcheco; esta camada complementa a interface, não é tradução integral de todos os diálogos/ferramentas.
+
+Preferência validada em SW_GET_INTERFACE_LANGUAGE/SW_SAVE_INTERFACE_LANGUAGE; armazenamento permanece TRUSTED_CONTEXTS. Não liberar storage.local ao content script. O serviço transmite UI_LANGUAGE_CHANGED às abas Wide e os iframes da extensão acompanham storage.onChanged. Tratar leitura inicial atrasada sem sobrescrever uma escolha mais recente. Rótulos originais dos comandos permanecem acessíveis a nativeActions e à sincronização de Histórico, evitando seletores baseados no texto traduzido.
+
+Menus Project/Edit/Media/Smart Tools/Help usam altura de 28px, mesma fonte, borda, fundo e foco dos atalhos. A barra quebra linhas em larguras menores. Altura nativa 100% foi removida nesses controles após o teste real revelar crescimento e corte da segunda linha.
+
+Exclusão: listener MAIN capture em Ng, somente ação nativa DeleteClips da 1.7.12, projeto atual, clipes presentes na apresentação e histórico nativo disponível. Define apenas action.data.confirm=false; o comando original executa e salva o histórico. Não aceita automaticamente qualquer ConfirmView e não altera confirmações de arquivos, mídias, pastas ou projetos. Fora da interface Wide Studio ou em versão não reconhecida, preserva comportamento nativo.
+
+Validação: suíte completa de regressão e UI; 64 checks de background, testes de restauração de idiomas/nomes protegidos e bypass restrito de exclusão; typecheck e build. Chrome real: excluir grupo sem confirmação, desfazer/refazer com posições exatas, trocar projeto, menus com estilo idêntico aos atalhos em 1000px, cinco idiomas/Original, Extrair mudando es→en, e idioma francês mantido após reload. Evidências: docs/evidence/history-live.json, editor-polish-desktop.png e editor-polish-compact.png. Próximo passo: ampliar o catálogo conforme novos textos forem encontrados no uso diário, mantendo os fallbacks e a proteção dos dados de projeto.
+
+## 0.12.0 — menus unificados e personalização da barra
+
+Pastas e menus nativos agora compartilham a mesma sequência visual na barra; Personalizar fica após o grupo e Idioma à direita. display:contents remove apenas as caixas intermediárias do toolbar/quickBar, sem mover os elementos nativos da MenuBar. CSS order é aplicado a cada pasta e componente nativo. Popups nativos e de atalhos compartilham superfície, borda, fonte, espaçamento, ícones, hover e estado desabilitado. Abrir um fecha o outro, inclusive quando o menu nativo interrompe o bubbling (fechamento dos atalhos em capture).
+
+MenuLayout migra dados antigos preservando folders/hiddenMenus e acrescenta toolbarOrder, hiddenFolders e showLanguage. A ordem deve conter exatamente todas as pastas e menus conhecidos, sem entradas extras, duplicadas ou ausentes. Novas pastas entram na lista; remover uma retira também sua chave e visibilidade. Reordenar/ocultar menus Project/Edit/Media/Smart Tools/Help usa a mesma lista das pastas; o botão opcional de contribuição também pode ser ocultado. As ações continuam configuradas separadamente dentro das pastas; cancelar não grava. Não reimplementar comandos nativos nem remover seus nós para ordenar a interface.
+
+Personalizar possui linhas de largura consistente, campos alinhados, corpo rolável e rodapé Salvar/Cancelar fixo no modal centralizado. A preferência de mostrar o seletor de idioma é acessível ali. Preferências antigas são normalizadas no cliente, e novas gravações usam o schema validado pelo serviço.
+
+Validação: typecheck, build, suíte completa e UI; teste de migração, ordem mista válida/inválida, visibilidade, preservação de atalhos, identidade dos nós e cancelamento. Chrome real: grupo de menus em uma linha, idioma à direita, igualdade do estilo de popups, fechamento exclusivo, Project movido antes das pastas, ocultar Help/pasta IA, salvar/recarregar, cancelar sem alterar, componentes nativos preservados e largura de 1000px sem overflow. Evidências locais: docs/evidence/unified-menus.json e unified-menus-{desktop,customize,compact}.png.
+
+## 0.12.1 — português ampliado para menus, submenus e ferramentas
+
+Catálogo específico pt-BR com 963 entradas de frases e modelos, além da tabela multilíngue já existente. Levantamento local dos recursos da 1.7.12: botões, labels, menus, ferramentas inteligentes, filtros, estados, animações, modos de mesclagem, fontes e confirmações. O levantamento bruto fica em .local, não no pacote. Os itens do print (Proxy Generator, Synchronize Timing, Duplicate/Disable Clip, Add/Copy Filters & Effects, Arrange, Select Clips, Fullscreen e About) estão cobertos, incluindo os submenus e qualificadores Within Layer.
+
+portuguese.ts usa correspondência exata antes de modelos delimitados e escapados, com argumentos preservados, números restritos quando apropriado, comprimento limitado e cache limitado. Frases exatas comuns precedem modelos genéricos para evitar tratar Media como nome de arquivo em Create Clip From Media. Entradas vazias de formatação são ignoradas; testes validam nomes dos parâmetros. Não usa APIs externas, não traduz trechos arbitrários de valores, nomes de mídias/camadas/projeto, legendas ou campos de texto. Termos técnicos, marcas e dados do usuário permanecem originais; textos não catalogados têm fallback.
+
+A cobertura DOM agora inclui rótulos de filtros, propriedades de cena/saída, status da mídia e notificações. Mantém nomes, tags e valores protegidos. O clique nativo em tipo de mídia lê innerText: restaura apenas a origem desse alvo durante o clique original e repinta depois, sem repetir a ação, para não quebrar o filtro da Biblioteca. sourceUiText preserva mensagens compostas com argumentos em strong/q, e preserveSceneDuringDrop consulta esse texto-fonte para reconhecer confirmações de resolução mesmo traduzidas. Idioma do documento acompanha a escolha para acessibilidade. Preferências validadas foram separadas em languages.ts para o serviço não carregar todo o catálogo.
+
+Validação: suíte completa e UI; teste específico de nomes/parâmetros, menus do print, mensagens compostas, popups criados depois da escolha, campos editáveis, filtros da Biblioteca e retorno a Original. Auditoria local de recursos estáticos cobriu 209/209 rótulos estáticos de botões, 10/10 títulos de menu e 32/32 textos de ferramentas inteligentes; termos como RGB/LUT/Zoom e marcas são intencionalmente mantidos. Teste real com MP4 curto gerado localmente: importar/criar clipe, abrir menu contextual e submenus, percorrer Project/Edit/Media/Smart Tools/Help, abrir SceneExplorer e restaurar Original; projeto nativo e nome do arquivo mantidos. Evidências: docs/evidence/portuguese-live.json, portuguese-context-menu.png e portuguese-scene-settings.png. Próximo passo: acrescentar novos textos observados no uso real sem relaxar a proteção do conteúdo do projeto.
+
+## 0.12.2 — corrigir piscada no hover de Idioma
+
+Causa reproduzida: MenuBar.onBodyMouseOver lê title/ariaLabel do alvo e insere o conteúdo em .mouseAction, um item da mesma linha flex. O texto longo de ajuda altera larguras/quebras da barra, desloca o seletor para fora do cursor parado, dispara saída e limpa a ajuda; ele então volta sob o cursor e reinicia o ciclo. Na 0.12.1, 1500px geraram 38 entradas de mouse, três posições do seletor e alturas 54/89/77px em cerca de dois segundos; em 1000px, 34 entradas e duas posições.
+
+Correção: retirar .mouseAction do layout somente na interface Wide Studio, preservando os popovers nativos e rótulos acessíveis. A descrição longa do seletor passa de title para aria-description, inclusive em falha de salvamento. Não atualizar tooltip repetidamente nem interromper eventos do mouse/seleção. No modo de interface original o comportamento nativo é preservado pela regra CSS com escopo.
+
+Validação: typecheck/build; regressões de idiomas e português; Chrome real em 1500, 1280 e 1000px, 130+ amostras por largura. Depois: uma posição, uma altura, uma entrada do mouse e zero perda do alvo em cada largura; seleção de inglês confirmada após o hover. Evidências: docs/evidence/language-hover-before.json/png e language-hover-after.json/png. Teste reproduzível: extension/tests/languageHoverLive.mjs, HOVER_BASELINE=1 para registrar sem exigir estabilidade.

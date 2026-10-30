@@ -1,6 +1,6 @@
 import {extractionUrl} from './client';
 import {websiteOrigins} from './websites';
-export type WebJob={id:string;tabId:number;project:string;binding:'instance'|'persistent';url:string;phase:'queued'|'preparing'|'downloading'|'importing'|'done'|'error'|'unknown';created:number;updated:number;workerTabId?:number;providerTabId?:number;bytes?:number;name?:string;detail?:string;error?:string;result?:{imported:boolean;name:string;bytes:number}};
+export type WebJob={id:string;tabId:number;project:string;binding:'instance'|'persistent';url:string;phase:'queued'|'preparing'|'downloading'|'importing'|'done'|'error'|'unknown';created:number;updated:number;workerTabId?:number;providerTabId?:number;bytes?:number;name?:string;detail?:string;error?:string;result?:{imported:boolean;name:string;bytes:number;hiddenByFilter?:boolean}};
 export const jobKey=(id:string)=>'webImportJob:'+id;
 const activeKey=(tab:number)=>'webImportActive:'+tab;
 const terminal=(j:WebJob)=>['done','error','unknown'].includes(j.phase);

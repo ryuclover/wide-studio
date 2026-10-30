@@ -130,6 +130,9 @@ protocol=2;const simple=await call({type:'SW_EXTRACT_START',flow:'simple',url:'h
 check('simple flow connects automatically and starts the whole video',simple.success&&helperStarts===1&&local.extractorToken==='b'.repeat(40));
 check('page cannot invoke free website importer',listener({type:'SW_WEB_IMPORT',url:'https://x.com/i/status/1790637656616943991'},pageSender,()=>assert.fail('page imported media'))===undefined);
 check('unsupported website source rejected before tab creation',!(await call({type:'SW_WEB_IMPORT',url:'https://127.0.0.1/private'})).success);
+check('foreign page cannot read language preference',listener({type:'SW_GET_INTERFACE_LANGUAGE'},{id:'foreign',url:'https://wide.video/app/1.7.12/',tab:{id:1}},()=>assert.fail('foreign preference'))===undefined);
+check('invalid interface language rejected',!(await call({type:'SW_SAVE_INTERFACE_LANGUAGE',language:'private-key'})).success);
+check('language save uses validated scalar only',(await call({type:'SW_SAVE_INTERFACE_LANGUAGE',language:'es'})).data.language==='es'&&local.wsInterfaceLanguage==='es');
+const languageFromContent=await new Promise<any>(resolve=>listener({type:'SW_GET_INTERFACE_LANGUAGE'},{id:'extension-test',url:'https://wide.video/app/1.7.12/',tab:{id:1}},resolve));
+check('content reads only its language preference',JSON.stringify(languageFromContent.data)==='{"language":"es"}');
 console.log(`${checks} background regression checks passed (mock Chrome APIs).`);
-
-

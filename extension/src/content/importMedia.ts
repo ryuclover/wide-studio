@@ -1,5 +1,6 @@
 import {YOUTUBE_MAX_BYTES,EXTRACT_CHUNK_BYTES} from '../extract/limits';
 import {rememberDriveMedia} from './driveDrop';
+import type {MediaReceiptClient} from '../bridge/mediaReceipt';
 export async function importMedia(message:{name:string;mime:string;base64:string;driveKey?:string;expectedProjectId?:string}){
  if(typeof message.name!=='string'||message.name.length>180||!/^(image|video|audio)\/[a-z0-9.+-]+$/i.test(message.mime)||typeof message.base64!=='string'||message.base64.length>28*1024*1024||!/^[a-zA-Z0-9+/]*={0,2}$/.test(message.base64))throw new Error('Mídia inválida ou acima de 20 MB.');
  const bytes=Uint8Array.from(atob(message.base64),char=>char.charCodeAt(0));if(bytes.length>20*1024*1024)throw new Error('Mídia acima de 20 MB.');
@@ -18,9 +19,41 @@ async function importFile(message:{name:string;driveKey?:string;expectedProjectI
 
 type Transfer={id:string;project:string;name:string;size:number;parts:Uint8Array[];next:number;timer:ReturnType<typeof setTimeout>};
 let pending:Transfer|undefined;
+type ImportState={phase:'processing'|'done'|'error';project:string;detail?:string;error?:string;result?:{imported:boolean;name:string;bytes:number;hiddenByFilter?:boolean}};
+const imports=new Map<string,ImportState>();
+async function processExtract(id:string,file:File,bridge:MediaReceiptClient,state:ImportState){
+ try{
+  const native=document.querySelector<HTMLElement>('#ProjectApp .MediaListView');if(!native)throw new Error('Biblioteca indisponível.');
+  // Do not dispatch into an unrelated modal or auto-dismiss user choices.
+  if(document.querySelector('dialog[open]:not(.ContextMenu)'))throw new Error('Feche a janela aberta no editor e tente novamente.');
+  const receipt=await bridge.importReceipt({mode:'begin',token:id,name:file.name,bytes:file.size});
+  const transfer=new DataTransfer();transfer.items.add(new File([file],receipt.name,{type:file.type}));
+  const oldDialogs=new Set(document.querySelectorAll('dialog[open]'));
+  native.dispatchEvent(new DragEvent('drop',{dataTransfer:transfer,bubbles:true,cancelable:true}));
+  const deadline=Date.now()+10*60*1000;
+  while(Date.now()<deadline){
+   await new Promise(r=>setTimeout(r,600));
+   if(!native.isConnected)throw new Error('O projeto ou a Biblioteca mudou durante a importação.');
+   const current=await bridge.importReceipt({mode:'status',token:id});
+   if(current.phase==='valid'){state.result={imported:true,name:current.name,bytes:current.bytes,hiddenByFilter:!!native.querySelector('.removeFilters')?.textContent?.trim()&&![...native.querySelectorAll<HTMLElement>('.MediaView')].some(e=>e.title===current.name)};state.phase='done';return;}
+   if(current.phase==='invalid')throw new Error(current.reason||'O Wide não conseguiu ler o vídeo.');
+   const dialog=[...document.querySelectorAll('dialog[open]:not(.ContextMenu)')].find(d=>!oldDialogs.has(d));
+   state.detail=dialog?'O Wide abriu uma janela. Confira a janela no editor para continuar.':current.phase==='probing'?'O Wide está analisando o vídeo…':'O Wide está recebendo o arquivo…';
+  }
+  throw new Error('O Wide não confirmou a leitura do vídeo em 10 minutos. Confira a Biblioteca antes de repetir.');
+ }catch(error){state.phase='error';state.error=String(error).replace(/^(?:Error:\s*)+/,'');}
+}
 function discard(){if(pending)clearTimeout(pending.timer);pending=undefined;}
-export async function extractionTransfer(message:any,project:string){
+export async function extractionTransfer(message:any,project:string,bridge?:MediaReceiptClient){
  if(typeof message.transferId!=='string'||!/^[a-f0-9-]{36}$/.test(message.transferId))throw new Error('Transferência inválida.');
+ const existing=imports.get(message.transferId);
+ if(existing){
+  if(existing.project!==project||message.expectedProjectId!==project)throw new Error('O projeto mudou durante a importação.');
+  if(message.type==='EXTRACT_IMPORT_STATUS'||message.type==='EXTRACT_IMPORT_FINISH')return existing;
+  if(message.type==='EXTRACT_IMPORT_ABORT')return {cancelled:false,phase:existing.phase};
+  throw new Error('Importação já iniciada.');
+ }
+ if(message.type==='EXTRACT_IMPORT_STATUS')throw new Error('O editor perdeu o acompanhamento desta importação. Confira a Biblioteca antes de repetir.');
  if(message.type==='EXTRACT_IMPORT_BEGIN'){
   if(pending)throw new Error('Aguarde a transferência atual.');
   if(typeof message.name!=='string'||!message.name.length||message.name.length>180||message.expectedProjectId!==project)throw new Error('Mídia ou projeto inválido.');
@@ -40,6 +73,11 @@ export async function extractionTransfer(message:any,project:string){
  discard();if(message.bytes!==transfer.size||transfer.size<100)throw new Error('Arquivo incompleto.');
  const file=new File(transfer.parts as BlobPart[],transfer.name,{type:'video/mp4'});
  const header=new Uint8Array(await file.slice(0,8).arrayBuffer());if(String.fromCharCode(...header.subarray(4,8))!=='ftyp')throw new Error('MP4 inválido.');
+ if(bridge){
+  const state:ImportState={phase:'processing',project};imports.set(message.transferId,state);
+  for(const [id,item]of imports){if(imports.size<=8)break;if(item.phase!=='processing')imports.delete(id);}
+  void processExtract(message.transferId,file,bridge,state);return state;
+ }
  return importFile({name:transfer.name,expectedProjectId:project},file);
 }
 window.addEventListener('pagehide',discard);

@@ -1,11 +1,12 @@
 import {NativeDropReader} from './nativeDrop';
+import {NativeMediaReceipts} from './mediaReceipt';
 import { BridgeRequestSchema, BridgeResponse } from '../types/snapshot';
 import { normalizeNativeProject } from './snapshotNormalizer';
 import { withinMessageLimit } from './protocol';
 const KEY='__WIDE_STUDIO_MAIN_BRIDGE_UNINSTALL__';
 export function installMainBridge(initialSessionId?:string):()=>void {
   const previous=(window as any)[KEY];if(typeof previous==='function')previous();
-  let activeSession=initialSessionId;const drops=new NativeDropReader();
+  let activeSession=initialSessionId;const drops=new NativeDropReader(),receipts=new NativeMediaReceipts();
   let project:object|null=null;
   let clipIds=new WeakMap<object,string>();
   const listener=(event:MessageEvent)=>{
@@ -30,6 +31,7 @@ export function installMainBridge(initialSessionId?:string):()=>void {
       if(version!=='1.7.12'){reply(false,undefined,'UNSUPPORTED_EDITOR');return;}
       if(project!==p){project=p;clipIds=new WeakMap();}
       if(req.type==='WIDE_BRIDGE_DROP_TARGET'){reply(true,drops.handle(p,req.payload));return;}
+      if(req.type==='WIDE_BRIDGE_IMPORT_RECEIPT'){reply(true,receipts.handle(p,req.payload));return;}
       if(req.type==='WIDE_BRIDGE_READ_SELECTION'){reply(true,{kind:p.selection?.kind||'unknown',hasValue:!!p.selection?.value});return;}
       if(req.type==='WIDE_BRIDGE_OPEN_SMART_TOOL'){
         const toolName=(req.payload as any)?.tool;
@@ -63,4 +65,3 @@ export function installMainBridge(initialSessionId?:string):()=>void {
   const uninstall=()=>{window.removeEventListener('message',listener);if((window as any)[KEY]===uninstall)delete(window as any)[KEY];};
   (window as any)[KEY]=uninstall;return uninstall;
 }
-

@@ -6,7 +6,7 @@ let starts=0,imports=0;const calls:any[]=[];
 Object.defineProperty(globalThis,'chrome',{configurable:true,value:{permissions:{request:async()=>true},runtime:{sendMessage:async(m:any)=>{
  calls.push(m);assert.equal(m.editorTabId,1);
  if(m.type==='SW_WEB_STATUS')return {success:true,data:null};
- if(m.type==='SW_WEB_IMPORT'){starts++;imports++;assert.ok(!('saveDrive' in m));assert.match(m.requestId,/^[a-f0-9-]{36}$/);await new Promise(r=>setTimeout(r,30));return {success:true,data:{id:m.requestId,url:m.url,phase:'done',result:{imported:true,name:'teste.mp4'}}};}
+ if(m.type==='SW_WEB_IMPORT'){starts++;imports++;assert.ok(!('saveDrive' in m));assert.match(m.requestId,/^[a-f0-9-]{36}$/);await new Promise(r=>setTimeout(r,30));return {success:true,data:{id:m.requestId,url:m.url,phase:'done',result:{imported:true,name:'teste.mp4',hiddenByFilter:starts===2}}};}
  throw new Error(m.type);
 }}}});
 const {render,h,options}=await import('preact');options.requestAnimationFrame=f=>setTimeout(f,0) as any;
@@ -21,5 +21,5 @@ win.document.querySelector('form')!.dispatchEvent(new win.Event('submit',{bubble
 assert.equal(starts,1,'one click starts extraction, duplicate submit is locked');assert.equal(imports,1,'automatically imports without second confirmation');assert.ok(win.document.body.textContent.includes('teste.mp4 adicionado à Biblioteca.'));
 input.value='https://youtube.com/shorts/jNQXAC9IVRw';input.dispatchEvent(new win.Event('input',{bubbles:true}));await pause();
 win.document.querySelector('form')!.dispatchEvent(new win.Event('submit',{bubbles:true,cancelable:true}));await pause();
-assert.equal(imports,2,'YouTube follows the same single-action flow');assert.equal(calls.at(-1).url,'https://www.youtube.com/watch?v=jNQXAC9IVRw');
+assert.ok(win.document.body.textContent.includes('Limpe os filtros da Biblioteca para visualizar.'));assert.equal(imports,2,'YouTube follows the same single-action flow');assert.equal(calls.at(-1).url,'https://www.youtube.com/watch?v=jNQXAC9IVRw');
 render(null,win.document.querySelector('#app')!);await win.happyDOM.close();console.log('Simple extraction UI passed: one URL, one action, automatic import, no Drive/pairing controls, validation and duplicate lock.');

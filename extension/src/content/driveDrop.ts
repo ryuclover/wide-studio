@@ -1,4 +1,5 @@
 import type {ContentBridgeClient} from '../bridge/contentBridge';
+import {sourceUiText} from '../i18n/catalog';
 export const DRIVE_DRAG_TYPE='application/x-wide-studio-drive';
 export const DRIVE_DROP_PROTOCOL=1;
 export function driveRowAt(x:number,y:number){
@@ -10,7 +11,7 @@ const loaded=new Map<string,{project:string;view:WeakRef<HTMLElement>}>();
 export function preserveSceneDuringDrop(){
  const before=new Set(document.querySelectorAll('dialog'));
  const check=()=>{for(const d of document.querySelectorAll<HTMLDialogElement>('dialog[open]')){
-  if(before.has(d))continue;const view=d.querySelector('.ConfirmView'),title=view?.querySelector('h1')?.textContent?.trim(),message=view?.querySelector('.message')?.textContent||'';
+  if(before.has(d))continue;const view=d.querySelector('.ConfirmView'),title=sourceUiText(view?.querySelector('h1')||null).trim(),message=sourceUiText(view?.querySelector('.message')||null);
   if((title==='Resize Scene'&&/^Resize scene to match media size \d+×\d+\?/.test(message))||(title==='Match Scene'&&/^Update scene to match media size and frame rate \d+×\d+@/.test(message))){before.add(d);view?.querySelector<HTMLButtonElement>('button.false')?.click();}
  }};
  const observer=new MutationObserver(check);observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});return()=>observer.disconnect();

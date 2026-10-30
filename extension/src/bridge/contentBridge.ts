@@ -1,3 +1,4 @@
+import {MediaReceiptSchema, type MediaReceipt} from './mediaReceipt';
 import {DropResponseSchema} from './nativeDrop';
 import { BridgeMessageType, BridgeRequest, BridgeResponseSchema, ProjectSnapshot, ProjectSnapshotSchema } from '../types/snapshot';
 import { HandshakeSchema, ProbeSchema, SelectionSchema, SmartToolResponseSchema, withinMessageLimit } from './protocol';
@@ -20,7 +21,7 @@ export class ContentBridgeClient {
       this.ready=false;return finish(Object.assign(new Error(res.error.message),{code:res.error.code}));
     }
     if(res.type!==expected || res.error)return finish(new Error('INVALID_BRIDGE_RESPONSE_TYPE'));
-    const schema=pending.type==='WIDE_BRIDGE_DROP_TARGET'?DropResponseSchema:pending.type==='WIDE_BRIDGE_HANDSHAKE'?HandshakeSchema:pending.type==='WIDE_BRIDGE_PROBE'?ProbeSchema:pending.type==='WIDE_BRIDGE_READ_SELECTION'?SelectionSchema:pending.type==='WIDE_BRIDGE_OPEN_SMART_TOOL'?SmartToolResponseSchema:ProjectSnapshotSchema;
+    const schema=pending.type==='WIDE_BRIDGE_IMPORT_RECEIPT'?MediaReceiptSchema:pending.type==='WIDE_BRIDGE_DROP_TARGET'?DropResponseSchema:pending.type==='WIDE_BRIDGE_HANDSHAKE'?HandshakeSchema:pending.type==='WIDE_BRIDGE_PROBE'?ProbeSchema:pending.type==='WIDE_BRIDGE_READ_SELECTION'?SelectionSchema:pending.type==='WIDE_BRIDGE_OPEN_SMART_TOOL'?SmartToolResponseSchema:ProjectSnapshotSchema;
     const payload=schema.safeParse(res.data);if(!payload.success)return finish(new Error('INVALID_BRIDGE_PAYLOAD'));
     if(pending.type==='WIDE_BRIDGE_HANDSHAKE'){
       if((payload.data as any).sessionId!==this.sessionId)return finish(new Error('INVALID_BRIDGE_SESSION'));
@@ -50,9 +51,9 @@ export class ContentBridgeClient {
   async readSnapshot(){await this.ensureReady();return this.sendRequest<ProjectSnapshot>('WIDE_BRIDGE_READ_SNAPSHOT');}
   async readSelection(){await this.ensureReady();return this.sendRequest<{kind:string;hasValue:boolean}>('WIDE_BRIDGE_READ_SELECTION');}
   async openSmartTool(tool:'silenceRemover'|'captionsGenerator'){await this.ensureReady();return this.sendRequest<{tool:string;triggered:boolean}>('WIDE_BRIDGE_OPEN_SMART_TOOL',{tool});}
+  async importReceipt(payload:unknown):Promise<MediaReceipt>{await this.ensureReady();return this.sendRequest('WIDE_BRIDGE_IMPORT_RECEIPT',payload);}
   async dropTarget(payload:unknown):Promise<any>{await this.ensureReady();return this.sendRequest('WIDE_BRIDGE_DROP_TARGET',payload);}
   isReady(){return this.ready;}
   getSessionId(){return this.sessionId;}
   destroy(){window.removeEventListener('message',this.listener);this.listening=false;this.ready=false;this.connecting=null;for(const req of this.pending.values()){clearTimeout(req.timer);req.reject(new Error('BRIDGE_DESTROYED'));}this.pending.clear();}
 }
-

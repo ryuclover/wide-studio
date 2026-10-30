@@ -24,7 +24,7 @@ export class SmoothHistory{
  private onMove=(event:Event)=>{const detail=(event as CustomEvent).detail,live=this.live();if(!live||detail?.data?.project!==live.p||!detail.data.clip||!Number.isFinite(detail.data.presentationTime))return;
   this.MoveCommand=detail.constructor;if(this.applying)return;
   if(this.tx?.project===live.p&&this.tx.changes.has(detail.data.clip))return;
-  const node=this.tx?.nodeMap?.get(detail.data.clip)||this.nodes().find(n=>n.init?.clip===detail.data.clip);if(!node)return;
+  const node=this.tx?.nodeMap?.get(detail.data.clip)||this.nodes().find(n=>n.init?.clip===detail.data.clip);if(!node){if(this.tx)this.tx.untracked=true;return;}
   if(!this.tx||this.tx.project!==live.p||this.tx.source!==this.native)this.tx={project:live.p,source:this.native,signature:this.signature(live.p),changes:new Map()};
   if(!this.tx.changes.has(detail.data.clip))this.tx.changes.set(detail.data.clip,{clip:detail.data.clip,from:this.tx.starts?.get(detail.data.clip)??node.timing.presentation.start});
  };
@@ -39,7 +39,7 @@ export class SmoothHistory{
   this.states.splice(this.cursor+1);
   if(point.previous&&point.previous!==this.native&&point.previous.version>this.states.at(-1)!.snapshot.version)this.states.push({snapshot:point.previous});
   let move:Move|undefined;const tx=this.tx;
-  if(tx?.project===project&&tx.source===this.native&&tx.signature&&tx.signature===this.signature(project)&&current.reasons?.every((r:string)=>/^(Update|Add) filter Start Time$/.test(r))){
+  if(tx?.project===project&&!tx.untracked&&tx.source===this.native&&tx.signature&&tx.signature===this.signature(project)&&current.reasons?.every((r:string)=>/^(Update|Add) filter Start Time$/.test(r))){
    const nodes=this.nodes(),changes=[...tx.changes.values()].map((c:any)=>({...c,to:nodes.find(n=>n.init?.clip===c.clip)?.timing.presentation.start}));
    if(changes.length&&changes.every(c=>Number.isFinite(c.from)&&Number.isFinite(c.to))&&changes.some(c=>Math.abs(c.to-c.from)>.0001))move={project,Command:this.MoveCommand,signature:tx.signature,changes};
   }

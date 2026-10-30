@@ -1,3 +1,4 @@
+import {sourceUiText} from '../i18n/catalog';
 export const actionLabels:Record<string,string>={split:'Dividir clipe',rippleDelete:'Excluir e fechar espaço',undo:'Desfazer',silenceRemover:'Remover silêncios',captionsGenerator:'Gerar legendas',addText:'Inserir texto',exportVideo:'Exportar vídeo',exportScreenshot:'Capturar imagem'};
 const delay=()=>new Promise(r=>setTimeout(r,40));
 export async function runNativeAction(root:HTMLElement,id:string){
@@ -16,9 +17,21 @@ export async function runNativeAction(root:HTMLElement,id:string){
     const selector=id==='exportVideo'?'button.icon.export':id==='addText'?'button.icon.addText':id==='silenceRemover'?'button.icon.silenceRemover':id==='captionsGenerator'?'button.icon.captionsGenerator':null;
     if(selector)target=popup.querySelector(selector);
     else if(id==='undo')target=popup.querySelector('button');
-    else target=[...popup.querySelectorAll<HTMLButtonElement>('button')].find(b=>/^Ripple Delete(?: Clip| Clips| Gap)?$/i.test(b.querySelector('.label')?.textContent?.trim()||''))||null;
+    else target=[...popup.querySelectorAll<HTMLButtonElement>('button')].find(b=>/^Ripple Delete(?: Clip| Clips| Gap)?$/i.test(sourceUiText(b.querySelector('.label')).trim()))||null;
   }
   if(!target || target.closest('#wide-studio-workspace') || target.disabled || target.classList.contains('disabled'))throw new Error('Ação indisponível para a seleção atual. Selecione um clipe ou use o menu nativo.');
   target.click();await delay();
-  if(['silenceRemover','captionsGenerator','exportVideo','addText'].includes(id) && !root.ownerDocument.querySelector('dialog[open]:not(.ContextMenu)'))throw new Error('O diálogo nativo não foi confirmado. Confira o editor.');
+  if(id==='addText'){
+    // Submit only the creation form opened by this action, using Wide's own
+    // layer/time defaults and undoable clip creation path.
+    let submit:HTMLButtonElement|null=null;
+    for(let attempt=0;attempt<25;attempt++){
+      submit=root.ownerDocument.querySelector<HTMLButtonElement>('dialog[open] .AddClipForm:has(.source-text) button[type="submit"]');
+      if(submit&&!submit.disabled)break;
+      await delay();
+    }
+    if(!submit || submit.disabled)throw new Error('Não foi possível criar o texto. Confira o editor.');
+    submit.click();return;
+  }
+  if(['silenceRemover','captionsGenerator','exportVideo'].includes(id) && !root.ownerDocument.querySelector('dialog[open]:not(.ContextMenu)'))throw new Error('O diálogo nativo não foi confirmado. Confira o editor.');
 }

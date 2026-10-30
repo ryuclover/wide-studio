@@ -32,5 +32,18 @@ for(const selection of [{kind:'layer',value:p.presentation.layer[0]},{kind:'clip
 p.selection={kind:'layer',value:p.presentation.layer[0]};for(let i=0;i<2;i++)blank.dispatchEvent(new win.MouseEvent('click',{bubbles:true,cancelable:true,button:0,detail:1,clientX:40,clientY:40}));assert.equal(p.selection.kind,'empty','two clicks clear even when Chromium omits dblclick after prevented pointerdown');
 p.selection={kind:'clip',value:clips[0]};nodes[0].dispatchEvent(new win.MouseEvent('dblclick',{bubbles:true,cancelable:true,button:0}));assert.equal(p.selection.kind,'clip','clip double click remains native');
 assert.equal(p.metadata.version,7);assert.equal(JSON.stringify(p.presentation),presentation);removeDouble();
+const removeGap=installMarqueeSelection();const gap=doc.createElement('div');gap.className='TimelineGap';gap.innerHTML='<button><span>×</span></button>';blank.append(gap);
+let rippleClicks=0;gap.querySelector('button')!.onclick=()=>{rippleClicks++;};
+const bounds={left:0,top:0,right:500,bottom:300,width:500,height:300,x:0,y:0,toJSON(){}};
+(root.querySelector('.Timeline') as any).getBoundingClientRect=()=>bounds;
+for(const target of [gap,gap.querySelector('button')!,gap.querySelector('span')!]){
+ target.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,button:0,pointerId:1,isPrimary:true,clientX:20,clientY:20}));
+ doc.dispatchEvent(new win.PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:1,clientX:100,clientY:100}));
+ assert.ok(doc.querySelector('.ws-selection-box'),'gap background, button and icon all start a rectangle without arming');
+ doc.dispatchEvent(new win.PointerEvent('pointerup',{bubbles:true,cancelable:true,pointerId:1}));
+ gap.querySelector('button')!.click();assert.equal(rippleClicks,0,'release after dragging never ripple-deletes the gap');
+}
+gap.querySelector('button')!.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,cancelable:true,button:0,pointerId:1,isPrimary:true}));
+doc.dispatchEvent(new win.PointerEvent('pointerup',{bubbles:true,pointerId:1}));gap.querySelector('button')!.click();assert.equal(rippleClicks,1,'a click without dragging retains the native gap action');removeGap();
 const removeAgain=installMarqueeSelection();installMarqueeSelection();removeAgain();(win as any).__WIDE_STUDIO_MARQUEE_UNINSTALL__?.();
 await win.happyDOM.close();console.log('Marquee selection: native groups, additive/replace, locked guard, unchanged timeline, multiple snapshot, toggle and Escape passed.');

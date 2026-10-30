@@ -1,3 +1,4 @@
+import {translateUiText,sourceUiText,validLanguage} from '../i18n/catalog';
 import {SmoothHistory} from './smoothHistory';
 import {captureHistoryViewport,restoreHistoryViewport} from './historyViewport';
 type Entry={version:number;reasons:string[];source:unknown};
@@ -15,6 +16,7 @@ export function installHistoryControls(){
  const root=()=>document.querySelector<HTMLElement>('#ProjectApp') as any;
  const parts=()=>{const r=root(),p=r?.project,m=r?.querySelector('.MenuBar .EditMenu') as any;return p?.metadata?.appVersion==='1.7.12'&&m?.project===p?{r,p,m}:undefined;};
  const smooth=new SmoothHistory(parts,direction=>{void perform(direction<0?0:1);});
+ const localize=(text:string)=>{const value=document.documentElement.dataset.wsLanguage;return translateUiText(text,validLanguage(value)?value:'original');};
  const render=()=>{
   if(stopped)return;const live=parts(),toolbar=document.querySelector('#wide-studio-workspace');
   if(toolbar&&!toolbar.querySelector('.ws-history-controls')){
@@ -32,11 +34,11 @@ export function installHistoryControls(){
   for(const [index,action]of ['undo','redo'].entries()){
    const b=document.querySelector<HTMLButtonElement>(`[data-ws-history-action="${action}"]`);if(!b)continue;
    const disabled=busy||!smooth.can(index===0?-1:1);if(b.disabled!==disabled)b.disabled=disabled;
-   const title=(action==='undo'?'Desfazer':'Refazer')+(smooth.label(index===0?-1:1)?': '+historyLabel([smooth.label(index===0?-1:1)]):'');if(b.title!==title)b.title=title;
+   const title=(action==='undo'?'Desfazer':'Refazer')+(smooth.label(index===0?-1:1)?': '+historyLabel([smooth.label(index===0?-1:1)]):'');if(b.title!==localize(title))b.title=localize(title);const accessible=localize(action==='undo'?'Desfazer':'Refazer');if(b.getAttribute('aria-label')!==accessible)b.setAttribute('aria-label',accessible);
   }
   const nativeMenu=document.querySelector<HTMLDialogElement>('dialog.ContextMenu.menuBarMenu[open]');const nativeButtons=nativeMenu?.querySelectorAll<HTMLButtonElement>('button');
-  if(nativeButtons&&/^Undo(?:\b|:)/.test(nativeButtons[0]?.querySelector('.label')?.textContent||'')&&/^Redo(?:\b|:)/.test(nativeButtons[1]?.querySelector('.label')?.textContent||'')){
-   for(const [index,action]of ['undo','redo'].entries()){const button=nativeButtons[index],disabled=busy||!smooth.can(index===0?-1:1);button.dataset.wsHistoryAction=action;button.classList.toggle('disabled',disabled);if(button.disabled!==disabled)button.disabled=disabled;button.setAttribute('aria-disabled',String(disabled));const label=button.querySelector('.label'),text=(index===0?'Undo':'Redo')+(smooth.label(index===0?-1:1)?': '+smooth.label(index===0?-1:1):'');if(label&&label.textContent!==text)label.textContent=text;}
+  if(nativeButtons&&(nativeButtons[0]?.dataset.wsHistoryAction==='undo'||/^Undo(?:\b|:)/.test(sourceUiText(nativeButtons[0]?.querySelector('.label'))))&&(nativeButtons[1]?.dataset.wsHistoryAction==='redo'||/^Redo(?:\b|:)/.test(sourceUiText(nativeButtons[1]?.querySelector('.label'))))){
+   for(const [index,action]of ['undo','redo'].entries()){const button=nativeButtons[index],disabled=busy||!smooth.can(index===0?-1:1);button.dataset.wsHistoryAction=action;button.classList.toggle('disabled',disabled);if(button.disabled!==disabled)button.disabled=disabled;button.setAttribute('aria-disabled',String(disabled));const label=button.querySelector('.label'),text=(index===0?'Undo':'Redo')+(smooth.label(index===0?-1:1)?': '+smooth.label(index===0?-1:1):'');if(label&&label.textContent!==localize(text))label.textContent=localize(text);}
   }
   if(!panel)return;
   const current=smooth.cursor;const visible=smooth.states.map((state,index)=>({version:index,reasons:state.snapshot.reasons||[]}));

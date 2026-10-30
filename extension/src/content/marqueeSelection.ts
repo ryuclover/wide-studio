@@ -59,12 +59,15 @@ export function installMarqueeSelection(){
  const cancel=()=>{const g=gesture;if(g?.dragged){suppressUntil=Date.now()+250;if(g.root.isConnected&&(g.root as any).project===g.project){try{selectExact(g.root,g.originalKind,g.original);}catch(error){announce(String(error).replace(/^Error: /,''));}}}clear();setArmed(false);};
  const down=(event:PointerEvent)=>{
   if(event.button!==0||event.isPrimary===false||!document.documentElement.hasAttribute('data-wide-studio-workspace'))return;
-  const target=event.target instanceof Element?event.target:null;if(!target||target.closest('button,input,select,textarea,a,[contenteditable=true],.ws-region-heading,dialog,.Controls'))return;
+  const target=event.target instanceof Element?event.target:null;
+  // Gap controls cover otherwise empty timeline space. Their click remains
+  // native, but a drag must be allowed to turn into a selection rectangle.
+  const gapButton=target?.closest('.TimelineGap button');
+  if(!target||target.closest('input,select,textarea,a,[contenteditable=true],.ws-region-heading,dialog,.Controls')||target.closest('button')&&!gapButton)return;
   const root=target.closest<HTMLElement>('#ProjectApp');if(!root||document.querySelector('dialog[open]'))return;
   const timeline=target.closest<HTMLElement>('.clipsContainer'),library=target.closest<HTMLElement>('.MediaListView > .container');
   const kind:Kind=timeline?'clips':'medias',zone=timeline?.closest<HTMLElement>('.Timeline')||library;if(!zone)return;
-  const item=target.closest('.TimelineClipContainer,.MediaView');if(!armed&&!event.shiftKey&&(item||target!==timeline&&target!==library))return;
-  if(!armed&&!event.shiftKey&&target.closest('.TimelineGap'))return;
+  const item=target.closest('.TimelineClipContainer,.MediaView');if(!armed&&!event.shiftKey&&item)return;
   let project;try{project=projectOf(root);}catch(error){if(armed||event.shiftKey)announce(String(error).replace(/^Error: /,''));setArmed(false);return;}
   gesture={id:event.pointerId,root,project,zone,kind,x:event.clientX,y:event.clientY,additive:event.ctrlKey||event.metaKey||event.shiftKey,dragged:false,hits:[],baseline:values(project,kind),originalKind:project.selection?.kind==='media'||project.selection?.kind==='medias'?'medias':'clips',original:values(project,project.selection?.kind==='media'||project.selection?.kind==='medias'?'medias':'clips')};
   event.preventDefault();event.stopImmediatePropagation();

@@ -1,3 +1,4 @@
+import {validLanguage} from '../i18n/languages';
 import {startWebJob,getWebJob} from '../extract/jobs';
 
 import { StorageService } from '../storage';
@@ -175,6 +176,21 @@ async function extractionBindings(){return ((await chrome.storage.session.get('e
 
 
 chrome.runtime.onMessage.addListener((message, sender, reply) => {
+
+  if(['SW_GET_INTERFACE_LANGUAGE','SW_SAVE_INTERFACE_LANGUAGE'].includes(message?.type)){
+    const allowed=sender.id===chrome.runtime.id&&(sender.url?.startsWith(chrome.runtime.getURL(''))||!!sender.tab?.id&&sender.url?.startsWith('https://wide.video/app/'));
+    if(!allowed)return;
+    void(async()=>{
+      if(message.type==='SW_SAVE_INTERFACE_LANGUAGE'){
+        if(!validLanguage(message.language))throw new Error('Idioma inválido.');
+        await chrome.storage.local.set({wsInterfaceLanguage:message.language});
+        const tabs=await chrome.tabs.query({url:'https://wide.video/*'});
+        await Promise.allSettled(tabs.filter(tab=>tab.id).map(tab=>chrome.tabs.sendMessage(tab.id!,{type:'UI_LANGUAGE_CHANGED',language:message.language})));
+        return {language:message.language};
+      }
+      const stored=await chrome.storage.local.get('wsInterfaceLanguage');return {language:validLanguage(stored.wsInterfaceLanguage)?stored.wsInterfaceLanguage:'original'};
+    })().then(data=>reply({success:true,data})).catch(error=>reply({success:false,error:String(error)}));return true;
+  }
 
   if(message?.type==='SW_GET_EXTRACT_URL'&&sender.id===chrome.runtime.id&&sender.tab?.id&&sender.url?.startsWith('https://wide.video/app/')){
 
@@ -733,12 +749,3 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   return true;
 
 });
-
-
-
-
-
-
-
-
-

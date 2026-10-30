@@ -1,86 +1,144 @@
 # Wide Studio
 
-A browser extension that makes [wide.video](https://wide.video/) easier to use, with an organized workspace, public Google Drive browsing, video imports by URL, and accessible editing controls.
+A browser extension that makes [wide.video](https://wide.video/) easier to use: a cleaner workspace, public Google Drive browsing, video imports by URL, linked clips, and accessible editing controls.
 
-![Wide Studio workspace](docs/screenshots/editor.png)
+**Current version: 0.13.2** · [Download the extension](https://github.com/ryuclover/wide-studio/releases/latest) · [Installation](#install) · [Visual feature guide](#visual-feature-guide)
 
-## Features
+![Wide Studio workspace with the Library, Preview, Properties and timeline](docs/screenshots/workspace-current.png)
 
-- **Organized workspace:** media on the left, preview in the center, properties on the right, and timeline below.
-- **Customizable menus:** organize shortcuts into folders, reorder actions, and hide unused menus.
-- **Quick import:** an Import media button beside the editor menus.
-- **Public Google Drive folders:** browse thumbnails, preview files, search, filter, and save favorite folders without connecting a Google account.
-- **Drive drag and drop:** drop a selected file onto a timeline layer at the desired time.
-- **Import videos by URL:** paste a public YouTube, Instagram, or X link to add media to the Library.
-- **Multiple selection:** drag a rectangle across clips or Library items. Selection updates while dragging; Shift adds to the existing selection, Esc cancels, and double-clicking empty timeline space clears it.
-- **Undo, redo, and History:** accessible arrows and a session history tab. Compatible individual and group clip movements are restored directly without reconstructing the project. Other operations use the editor's native snapshot restoration.
-- **Import progress and recovery:** extraction runs in a separate extension tab. Reopening Extract reconnects to the existing job instead of starting another download.
-- **Navigation and saved points:** jump to an exact time and save positions for later.
-- **Native tool shortcuts:** access the editor's split, silence removal, captions, and export tools.
+## What's new
 
-## What's new in 0.10.0
-
-Video extraction no longer depends on one long-lived extension message channel. This addresses imports failing with “the message channel closed before a response was received.” Longer videos have preparation and transfer progress and more time to finish.
-
-Undoing compatible clip movements now preserves the active project, timeline zoom, scroll position, and playhead. Group movements are supported, with native snapshot fallback for other edits.
-
-![Undo and History in a real editor test](docs/screenshots/history.png)
-
-A real browser test imported **The INFINITE Reroll Incident**, approximately **20 minutes 44 seconds**, into the Library with audio at **854×480**. A separate test stopped the extension service worker and reopened Extract while a short import was running; it completed once, without a duplicate import. External services can still be slow or unavailable.
-
-![Successful long-video import](docs/screenshots/long-video-import.png)
-
-## Screenshots
-
-### Browse Drive before importing
-
-Only the selected file is imported. The extension does not synchronize entire folders.
-
-![Drive thumbnails and folder navigation](docs/screenshots/drive.png)
-
-### Select clips across layers
-
-Selected clips can then be moved together using the editor's native behavior.
-
-![Rectangle selection across layers](docs/screenshots/selecao-multipla.png)
-
-Screenshots were captured in real temporary test projects. Some show earlier interface versions. The extension interface is currently in Portuguese; this documentation is in English.
+- **Link clips:** connect clips across layers and drag either member to move the set. Link and unlink are available in the timeline header and the right-click menu for a multiple-clip selection.
+- **More consistent rectangle selection:** start dragging on empty timeline space, including gaps and their × controls. Dragging does not activate the gap deletion action.
+- **One-click text:** Add Text creates a native text clip without the intermediate creation dialog.
+- **Unified, customizable menus:** reorder or hide native menus and shortcut folders from one list.
+- **Interface languages:** Original, English, Brazilian Portuguese, Spanish, French and German. Portuguese coverage includes 963 phrases and templates, with additional shared translations. Coverage varies by language.
+- **Editing flow:** accessible undo/redo, a History tab, clip deletion without confirmation, and more reliable long-video import receipts.
 
 ## Install
 
 1. Download and extract the ZIP from the [latest release](https://github.com/ryuclover/wide-studio/releases/latest) into a permanent folder.
 2. Open `chrome://extensions`, `edge://extensions`, or `opera://extensions`.
-3. Enable **Developer mode**.
-4. Choose **Load unpacked** and select **extensao**, the folder containing `manifest.json`.
+3. Enable **Developer mode** and choose **Load unpacked**.
+4. Select **extensao**, the folder containing `manifest.json`.
 5. Open a project in [wide.video 1.7.12](https://wide.video/app/1.7.12/).
 
-To update, replace the extension files, click **Reload** on the browser's extensions page, and reload wide.video too. Keep the extracted folder on your computer.
+To update, replace the extension files, click **Reload** on the browser's extensions page, then reload wide.video. Keep the extracted folder on your computer. No local connector is required for Drive or Extract.
 
-## Usage
+## Visual feature guide
 
-**Drive:** open Drive, browse a public folder, and click a file to preview it. Add it to the Library or drag it onto the timeline. Large still images may offer a lightweight copy.
+The screenshots below are real browser captures, not interface mockups. Current editing features use 0.13.2; Drive, extraction, navigation and native audio examples include earlier captures whose appearance may differ. Some interface text remains Portuguese even with English selected. The colored rectangles are small SVG test assets.
 
-**Extract:** paste a supported public video URL and click **Adicionar à Biblioteca**. Grant access to the service domain when prompted. Keep the editor and processing tab open until completion. Reopening Extract reconnects to progress. No local connector, API key, or Drive setup is needed.
+### 1. Cleaner workspace and quick media import
 
-**History:** use the top arrows to undo or redo. Open **Histórico** beside **Edição assistida** to inspect session steps. Compatible movements avoid project reconstruction; other operations still use native restoration.
+The Library stays on the left, Preview in the center, Properties on the right, and the timeline below. **Import media** is beside the main menus, so adding local files is always within reach. The extension keeps the native editor components and rendering engine in place.
 
-**Customize:** use **Personalizar** to organize action folders and menu visibility.
+![Organized workspace and Import media button](docs/screenshots/workspace-current.png)
 
-## Assisted editing: current status
+### 2. Customizable menus and shortcut folders
 
-The Assisted editing tab includes chat, project context, and optional NVIDIA NIM configuration using your own key. Chat execution is limited to actions the integration can actually verify, such as moving the playhead.
+Open **Customize / Personalizar**. Use the arrows to reorder native menus and shortcut folders; uncheck entries to hide them. Assign actions to folders, reorder shortcuts, or create another folder. **Save** persists the layout; **Cancel** discards pending changes.
 
-**Automatic silence cutting, caption generation, and image search/insertion through chat are not implemented.** Silence and caption shortcuts open wide.video's own tools.
+![Customize dialog with menu visibility, ordering and action folders](docs/screenshots/customize.png)
+
+### 3. Public Google Drive browser
+
+Open **Drive**, paste a public folder link, and browse its contents without connecting a Google account. Breadcrumbs navigate subfolders. Search, type filters, sorting, thumbnail/list views and favorite folders help you find a particular asset. Only selected files are imported; the folder is not synchronized.
+
+![Drive folder navigation, search, filters and thumbnails](docs/screenshots/drive-browser.png)
+
+### 4. Preview Drive files and import lighter images
+
+Click an item to inspect it before importing. For supported oversized still images, the preview offers a smaller copy as an explicit alternative. The lighter copy can change resolution and sharpness; it is not the original file.
+
+![Drive preview with the original size and lightweight-copy option](docs/screenshots/drive-preview.png)
+
+### 5. Drag Drive media onto the timeline
+
+Drag a Drive card onto the desired timeline layer and time. The extension imports the chosen asset and inserts its clip at the drop location. The screenshot shows the imported item in the preview and its timeline placement. This is an import, not direct cloud streaming.
+
+![Drive media imported at a chosen timeline position](docs/screenshots/drive-drop.png)
+
+### 6. Extract videos by URL
+
+Open **Extract / Extrair**, paste a supported public YouTube, Instagram or X link, and click **Add to Library / Adicionar à Biblioteca**. Grant the requested service-domain permission and keep the editor and processing tab open. Progress runs in a separate extension tab; reopening Extract reconnects to the current job instead of starting a duplicate.
+
+YouTube currently allows **up to 30 minutes, 200 MB and 480p with audio**, depending on available formats. Instagram and X imports are limited to 20 MB. A real test imported a video of approximately **20 minutes 44 seconds** with audio. Availability depends on external services.
+
+![Extract reports a successful long YouTube import into the Library](docs/screenshots/extract-success.png)
+
+### 7. Rectangle selection across clips and layers
+
+Drag from empty timeline space to select several clips. Gaps and their × controls also accept the gesture; once dragging begins, the gap's click action is suppressed. Selection updates while the rectangle grows or shrinks. **Shift** adds to the existing selection, **Esc** cancels, and double-clicking empty timeline space clears selection. The Library supports rectangle selection too.
+
+Use **Select multiple / Selecionar vários** to explicitly arm the gesture when needed. Normal dragging on a clip keeps the native move behavior.
+
+![Rectangle selection updates across two timeline layers](docs/screenshots/rectangle-selection.png)
+
+### 8. Link clips so they move together
+
+Select two or more clips, then choose **Link clips** from the right-click menu, or **Vincular** in the timeline header. Drag either member: linked clips move together, preserving their time offset and layers. A blue numbered badge identifies the set. Linking overlapping sets merges them.
+
+![Multiple-selection context menu with Link clips available](docs/screenshots/link-context.png)
+
+**Unlink clips / Desvincular** removes the selected set's link. The menu disables actions that do not apply. A locked member or layer blocks the set's drag, and the earliest member stops at time zero without collapsing the spacing.
+
+![Linked clip badges and the Unlink clips context-menu action](docs/screenshots/unlink-context.png)
+
+Links are saved locally for this project in this browser. They do not travel with an exported project. Ambiguous clip matches are not automatically reattached. Linking and unlinking are separate from native undo history. Only horizontal dragging is synchronized: trimming, cutting, deleting and keyboard movement remain individual operations. After unlinking, a still-active multiple selection can still move together through Wide's ordinary selection behavior.
+
+### 9. Undo, redo and a visible action history
+
+Use **↶ / ↷** beside Import media, or open the **History / Histórico** tab to inspect recent editing steps. Compatible individual and group movements are restored directly, preserving the active project and viewport. Other edits use Wide's native snapshot restoration. If a moved member is offscreen and cannot be fully tracked, restoration falls back to the complete snapshot rather than undoing only part of the group.
+
+Clip deletion no longer asks for confirmation; use undo to recover it. File, media, folder and project deletion dialogs keep their native behavior. History is session-based and limited to 20 states.
+
+![Accessible undo/redo arrows and the History inspector tab](docs/screenshots/history-current.png)
+
+### 10. Add text in one click
+
+Choose **AI & Audio → Add Text**. Wide Studio submits the native creation form automatically, using the editor's current layer and time defaults. Edit the new text through Wide's own text controls. The native creation action remains undoable.
+
+![Text clip created directly without the intermediate creation dialog](docs/screenshots/direct-text.png)
+
+### 11. Change the interface language
+
+Use **Language / Idioma** at the right of the top bar. The choice persists across reloads and synchronizes with embedded extension tabs. Portuguese covers menus, context menus, filters, properties, settings, transitions and common notifications. File names and project text are preserved; unsupported text falls back to the original.
+
+![Brazilian Portuguese selected with the translated Project menu](docs/screenshots/language-portuguese.png)
+
+### 12. Native editing, audio and export shortcuts
+
+Shortcut folders provide access to split, ripple delete, silence removal, caption generation, export video and capture image. These invoke **Wide's existing tools**; they are not new chat-based editing engines. Availability depends on the current selection and source media. Export uses Wide's native output settings.
+
+![AI & Audio folder with Silence Remover, Captions Generator and Add Text](docs/screenshots/native-shortcuts.png)
+
+The native Silence Remover lets you inspect the waveform and adjust signal thresholds before composing a result. Caption generation uses Wide's native workflow and its requirements. The extension's shortcuts open these tools rather than applying an unreviewed chat command.
+
+![Native Silence Remover with waveform and threshold controls](docs/screenshots/silence-tool.png)
+
+### 13. Exact navigation and saved points
+
+The extension's navigation/points panel can jump to an exact time or frame and save named positions. Saved points can be revisited, removed, imported and exported. Points stay in this browser; export a copy to move them to another computer. The screenshot below shows the compact companion panel from an earlier version.
+
+![Named saved points with jump, import and export controls](docs/screenshots/saved-points.png)
+
+### 14. Assisted editing chat — experimental
+
+Open **Assisted editing / Edição assistida** beside Properties. The panel exposes project context and optional NVIDIA NIM configuration using your own key. Execution is restricted to actions the integration can verify, such as playhead navigation. Requests require the available review/apply flow; unsupported operations are not reported as completed.
+
+**Automatic silence cutting, caption generation and image search/insertion through chat are not implemented.** Use the native audio tools described above for those workflows. No API key is required for the rest of the extension.
+
+![Assisted editing panel in local mode with no API key configured](docs/screenshots/assisted-editing.png)
 
 ## Limits and storage
 
-- Developed and tested against **wide.video 1.7.12**. Website changes may require extension updates.
-- Drive browsing supports public folders. Very large folders may show partial listings. Original Drive imports have a 20 MB limit.
-- YouTube imports: **up to 30 minutes, 200 MB, and 480p with audio**, depending on available formats. Instagram and X: 20 MB.
-- Extraction uses TubDown, Snapinsta, and FxTwitter. Service changes, outages, or human verification can prevent imports. The extension does not solve CAPTCHAs.
-- Imported media uses memory and may occupy project storage/cache. Drive editing is not direct streaming. Extract avoids an extra copy in Downloads.
-- History is session-based and bounded to 20 states. Direct movement restoration is guarded; unsupported edits use native snapshots.
-- Personal keys are excluded from the repository and release package. AI configuration is optional.
+- Developed and tested against **wide.video 1.7.12**. Website changes may require an extension update. This is an overlay, not a fork or a complete public API for Wide's engine.
+- Public Drive folders only. Large folders may return partial listings. Original Drive imports have a 20 MB limit; eligible images may offer an explicit smaller copy.
+- Video extraction uses TubDown, Snapinsta and FxTwitter. Links are sent to the relevant provider. Outages, changed sites, missing formats or human verification can prevent imports. The extension does not solve CAPTCHAs or bypass private-content access.
+- Imported media consumes memory and may occupy project storage/cache. Drive is not direct streaming; Extract avoids an additional manual copy in Downloads.
+- Links, layout preferences, language and saved points are local. Clearing browser/site data can remove them. History is session-based.
+- Personal keys, browser profiles and local diagnostic dumps are excluded from the repository and release. Optional AI configuration uses your own credentials.
 
 ## Development and tests
 
@@ -95,7 +153,7 @@ npm run test:ui
 npm run build
 ```
 
-Load `extension/dist` as an unpacked extension to test the build.
+Load `extension/dist` as an unpacked extension to test the build. To package it:
 
 ```sh
 cd extension
@@ -104,19 +162,19 @@ npm run release
 
 This creates a versioned ZIP and SHA-256 checksum under `release/`. Existing version folders are not overwritten.
 
-Automated tests cover project isolation, selection, chunked imports, limits, job recovery, UI behavior, history branching, and native fallback. Real browser tests cover long-video imports with audio, service-worker restart recovery, exact individual/group undo and redo, viewport preservation, deletion restoration, and project switching.
+Automated tests cover native-action targeting, project isolation, imports and receipts, job recovery, selection, linking, disabled/stale menu actions, language, menu customization and history. Real browser scenarios cover linking and unlinking from the context menu, movement, undo/redo, locks, the zero-time boundary, reload persistence and direct text creation, alongside earlier Drive and extraction checks. External-service tests are dependent on service availability.
 
-Live test scripts under `extension/tests/*Live.mjs` require a separately prepared test Chrome under `extension/.browser/`. It is not distributed. External-service tests depend on service availability.
+Live scripts under `extension/tests/*Live.mjs` require a separately prepared Chrome under `extension/.browser/`, which is not distributed. `readmeScreenshotsLive.mjs` captures the current editing screenshots in a clean test project.
 
 ## Code layout
 
-- `extension/src/content`: workspace overlay, import integration, selection, and history.
-- `extension/src/bridge` and `extension/src/adapter`: project inspection and editor communication.
-- `extension/src/extract`: URL resolution, persistent jobs, and video transfer.
-- `extension/src/ui`: Drive, Extract, navigation, and assisted editing interfaces.
-- `extension/tests`: automated and real-browser test scripts.
-- `companion`: legacy experimental local connector, not required by Extract and not included in the ZIP.
-- `tools`: editor investigation utilities.
-- `PROXIMOS-PASSOS.md`: technical project notes, currently in Portuguese.
+- `extension/src/content`: workspace, native actions, selection, links and history.
+- `extension/src/bridge`: validated communication and native project snapshots.
+- `extension/src/drive`: public folder browsing and bounded imports.
+- `extension/src/extract`: extraction jobs, providers and transfer logic.
+- `extension/src/i18n`: language preferences and local UI translations.
+- `docs/screenshots`: reviewed screenshots used in this guide.
+- `companion`: legacy experimental local connector; not required by Extract and not in the ZIP.
+- `PROXIMOS-PASSOS.md`: technical project notes in Portuguese.
 
-Independent project, not officially affiliated with wide.video, TechSmith, Google, NVIDIA, or the extraction services.
+Independent project, not officially affiliated with wide.video, TechSmith, Google, NVIDIA or the extraction services.

@@ -10,9 +10,9 @@ export function Extract(){
  const watch=async(job:WebJob,ticket:number)=>{let failures=0;
   while(alive.current&&ticket===serial.current){
    setLink(job.url);
-   if(job.phase==='done'){setStatus(`${job.result?.name||job.name||'Vídeo'} adicionado à Biblioteca.`);setError('');lock.current=false;setBusy(false);return;}
+   if(job.phase==='done'){setStatus(`${job.result?.name||job.name||'Vídeo'} adicionado à Biblioteca.`+(job.result?.hiddenByFilter?' Limpe os filtros da Biblioteca para visualizar.':''));setError('');lock.current=false;setBusy(false);return;}
    if(job.phase==='error'||job.phase==='unknown'){setStatus('');setError(job.error||'Importação interrompida.');lock.current=false;setBusy(false);return;}
-   lock.current=true;setBusy(true);setError('');setStatus(job.phase==='downloading'?`Transferindo para o editor… ${((job.bytes||0)/1024/1024).toFixed(1)} MB`:job.phase==='importing'?'Arquivo recebido. Adicionando à Biblioteca…':(job.detail||'Preparando o vídeo no serviço… Você pode continuar editando.'));
+   lock.current=true;setBusy(true);setError('');setStatus(job.phase==='downloading'?`Transferindo para o editor… ${((job.bytes||0)/1024/1024).toFixed(1)} MB`:job.phase==='importing'?(job.detail||'Arquivo recebido. Adicionando à Biblioteca…'):(job.detail||'Preparando o vídeo no serviço… Você pode continuar editando.'));
    await new Promise(r=>setTimeout(r,700));if(!alive.current||ticket!==serial.current)return;
    try{const next=await api({type:'SW_WEB_STATUS',jobId:job.id});if(!next)throw new Error('Importação não encontrada.');job=next;failures=0;}
    catch(e){if(++failures>=5){setStatus('');setError('Não foi possível consultar o progresso. Reabra a aba Extrair para reconectar.');lock.current=false;setBusy(false);return;}}

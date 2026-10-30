@@ -21,6 +21,13 @@ win.document.querySelector<HTMLButtonElement>('.EditMenu')!.onclick=()=>{
 await assert.rejects(()=>runNativeAction(root,'undo'),/indisponível/);disabled=false;await runNativeAction(root,'undo');assert.equal(undos,1);
 await runNativeAction(root,'rippleDelete');assert.equal(ripples,1,'native action, never the quick button itself');
 await assert.rejects(()=>runNativeAction(root,'split'),/indisponível/);
+const mediaMenu=win.document.createElement('button');mediaMenu.className='MediaMenu';root.querySelector('.MenuBar')!.append(mediaMenu);
+let texts=0;mediaMenu.onclick=()=>{
+ win.document.querySelectorAll('dialog').forEach(d=>d.remove());const popup=win.document.createElement('dialog');popup.className='ContextMenu menuBarMenu';popup.setAttribute('open','');popup.innerHTML='<button class="icon addText">Text</button>';popup.querySelector('button')!.onclick=()=>{
+  popup.remove();const dialog=win.document.createElement('dialog');dialog.setAttribute('open','');dialog.innerHTML='<form class="AddClipForm"><div class="source-text"></div><button type="submit">Create</button></form>';dialog.querySelector('form')!.onsubmit=e=>{e.preventDefault();texts++;dialog.remove();};win.document.body.append(dialog);
+ };win.document.body.append(popup);
+};
+await runNativeAction(root,'addText');assert.equal(texts,1,'text creation submits the native form exactly once');assert.equal(win.document.querySelector('dialog[open] .AddClipForm'),null);
 assert.ok(MenuLayoutSchema.safeParse(defaultMenuLayout).success);
 const changed=structuredClone(defaultMenuLayout);changed.folders.reverse();changed.folders[0].name='Favoritos';changed.folders[0].actions.push('undo');assert.equal(MenuLayoutSchema.safeParse(changed).success,false,'duplicated action rejected');
 assert.equal(driveId('https://drive.google.com/drive/folders/abcdefghijklm'),'abcdefghijklm');assert.throws(()=>driveId('https://attacker.invalid/drive/folders/abcdefghijklm'));

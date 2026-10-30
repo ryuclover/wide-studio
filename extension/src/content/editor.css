@@ -101,3 +101,75 @@ html[data-wide-studio-workspace] #ProjectApp .ws-history-panel:not([hidden]){dis
 .ws-history-panel h3{margin:4px 0 10px;font-size:14px}.ws-history-note{font-size:11px;color:#aab5c4}.ws-history-status{color:#c3dd9e;font-size:11px}
 .ws-history-list{list-style:none;margin:12px 0;padding:0}.ws-history-list li{padding:10px 9px;border-left:2px solid #48525d;border-bottom:1px solid #ffffff0b}.ws-history-list li[aria-current]{border-left-color:#add27e;background:#313c2c}.ws-history-list strong{display:block;font-size:12px;font-weight:500}.ws-history-list span{font-size:10px;color:#a8b4c3}.ws-history-future{opacity:.5}
 .ws-inspector-tabs{overflow-x:auto;gap:6px}
+
+/* Native menus use the same dimensions, surface, and focus treatment as shortcuts. */
+html[data-wide-studio-workspace] #ProjectApp .MenuBar > .container{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:4px 6px;min-height:36px}
+html[data-wide-studio-workspace] #ProjectApp .MenuBar :is(.ProjectMenu,.EditMenu,.MediaMenu,.SmartToolsMenu,.HelpMenu){display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:28px;box-sizing:border-box;padding:0 10px;border:1px solid #424b58;border-radius:4px;background:#292e36;color:#dbe4ed;font:600 12px/1.2 "Segoe UI",system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+html[data-wide-studio-workspace] #ProjectApp .MenuBar :is(.ProjectMenu,.EditMenu,.MediaMenu,.SmartToolsMenu,.HelpMenu)::after{content:"▾";font-size:10px;color:#aeb7c4}
+html[data-wide-studio-workspace] #ProjectApp .MenuBar :is(.ProjectMenu,.EditMenu,.MediaMenu,.SmartToolsMenu,.HelpMenu):hover{background:#343c47;border-color:#667584}
+html[data-wide-studio-workspace] #ProjectApp .MenuBar :is(.ProjectMenu,.EditMenu,.MediaMenu,.SmartToolsMenu,.HelpMenu):focus-visible{outline:2px solid #b9dd8e;outline-offset:2px}
+#wide-studio-workspace{flex-wrap:wrap}
+.ws-language-control{display:flex;align-items:center;gap:6px;padding-left:7px;border-left:1px solid #424b58;font:600 12px "Segoe UI",system-ui,sans-serif;color:#c3ccd7}
+.ws-language-control select{height:28px;max-width:155px;box-sizing:border-box;background:#292e36;color:#dbe4ed;border:1px solid #424b58;border-radius:4px;font:inherit;padding:0 6px;cursor:pointer}
+.ws-language-control select:focus-visible{outline:2px solid #b9dd8e;outline-offset:2px}
+html[data-wide-studio-workspace] #wide-studio-workspace .ws-folder-trigger{box-sizing:border-box;height:28px;padding:0 10px;background:#292e36;border:1px solid #424b58;color:#dbe4ed;font:600 12px/1.2 "Segoe UI",system-ui,sans-serif}
+html[data-wide-studio-workspace] #wide-studio-workspace .ws-folder-trigger:hover{background:#343c47;border-color:#667584}
+html[data-wide-studio-workspace] #ProjectApp .MenuBar :is(.ProjectMenu,.EditMenu,.MediaMenu,.SmartToolsMenu,.HelpMenu){height:28px;flex:0 0 auto;align-self:center}
+
+/* One visual row, without moving native components. */
+html[data-wide-studio-workspace] #wide-studio-workspace,html[data-wide-studio-workspace] #wide-studio-workspace .ws-quick-bar{display:contents}
+html[data-wide-studio-workspace] #wide-studio-workspace:is([hidden],[data-original="true"]){display:none}
+html[data-wide-studio-workspace] #wide-studio-workspace>[data-action="import"]{order:-20;height:28px;box-sizing:border-box;padding-block:0}
+html[data-wide-studio-workspace] #wide-studio-workspace>.ws-history-controls{order:-10}
+html[data-wide-studio-workspace] .ws-customize-trigger{order:800}
+html[data-wide-studio-workspace] .ws-action-status{order:810}
+html[data-wide-studio-workspace] .ws-language-control{order:900;margin-inline-start:auto}
+html[data-wide-studio-workspace] .MenuBar.ws-hide-language .ws-language-control{display:none}
+html[data-wide-studio-workspace] #ProjectApp .MenuBar>.container>:not(:where(#wide-studio-workspace,.MenuItem)){order:950}
+html[data-wide-studio-workspace] #ProjectApp .MenuBar>.container>.spacer{order:850;flex:1;min-width:0}
+html[data-wide-studio-workspace] #ProjectApp .MenuBar .MenuItem.openedContextMenu,html[data-wide-studio-workspace] .ws-folder-trigger[aria-expanded="true"]{background:#343c47;border-color:#667584}
+/* Shared popup treatment, including native submenus. */
+html[data-wide-studio-workspace] :is(.ws-folder-menu,dialog.ContextMenu.menuBarMenu,dialog.ContextMenu.menuBarMenu .children){background:#252a32;color:#dbe4ed;border:1px solid #424b58;border-radius:6px;box-shadow:0 8px 24px #0008;padding:4px;min-width:220px;box-sizing:border-box;font:12px/1.4 "Segoe UI",system-ui,sans-serif}
+html[data-wide-studio-workspace] dialog.ContextMenu.menuBarMenu::before,html[data-wide-studio-workspace] dialog.ContextMenu.menuBarMenu .children::before{display:none}
+html[data-wide-studio-workspace] :is(.ws-folder-item,dialog.ContextMenu.menuBarMenu button){display:flex;align-items:center;gap:8px;min-height:30px;box-sizing:border-box;border:0;border-radius:3px;padding:6px 10px;background:transparent;color:#dbe4ed;font:12px/1.4 "Segoe UI",system-ui,sans-serif;text-align:left;white-space:nowrap}
+html[data-wide-studio-workspace] :is(.ws-folder-item,dialog.ContextMenu.menuBarMenu button):not(:disabled):not(.disabled):is(:hover,:focus-visible){background:#343c47;color:#fff}
+html[data-wide-studio-workspace] :is(.ws-folder-item:disabled,dialog.ContextMenu.menuBarMenu button.disabled){opacity:.4;color:#aab3bf;cursor:default}
+html[data-wide-studio-workspace] dialog.ContextMenu.menuBarMenu button.disabled::before{opacity:1}
+html[data-wide-studio-workspace] dialog.ContextMenu.menuBarMenu button[data-extra]::after{color:#aab3bf;font:inherit}
+html[data-wide-studio-workspace] dialog.ContextMenu.menuBarMenu hr{border-top-color:#424b58;margin:4px 0}
+html[data-wide-studio-workspace] :is(.ws-folder-item,dialog.ContextMenu.menuBarMenu button.icon)::before{content:"";display:block;flex:0 0 14px;width:14px;height:14px;background-position:center;background-repeat:no-repeat;background-size:contain}
+.ws-folder-item[data-native-action="exportVideo"]::before{background-image:var(--compileIcon)}
+.ws-folder-item[data-native-action="exportScreenshot"]::before{background-image:var(--screenshotIcon)}
+.ws-folder-item[data-native-action="split"]::before{background-image:var(--splitIcon)}
+.ws-folder-item[data-native-action="undo"]::before{background-image:var(--undoIcon)}
+.ws-folder-item[data-native-action="rippleDelete"]::before{background-image:var(--binIcon)}
+.ws-folder-item[data-native-action="addText"]::before{background-image:var(--textIcon)}
+.ws-folder-item[data-native-action="captionsGenerator"]::before{background-image:var(--captionsIcon)}
+.ws-folder-item[data-native-action="silenceRemover"]::before{background-image:var(--silenceRemoverIcon)}
+.ws-customize h3{margin:18px 0 8px;font-size:13px;color:#dbe4ed}
+.ws-customize .ws-customize-hint{margin:0 0 12px;color:#aab3bf;font-size:12px}
+.ws-customize .ws-menu-order-row{display:flex;align-items:center;gap:5px;margin:5px 0}
+.ws-menu-order-row :is(input[type=text],input:not([type]),.ws-native-menu-name){flex:1;min-width:0}
+.ws-native-menu-name{padding:6px 9px}
+.ws-customize .ws-action-layout-row{display:flex;align-items:center;gap:5px}
+.ws-action-layout-row>span{flex:1;min-width:0}
+.ws-customize-footer{display:flex;justify-content:flex-end;gap:6px;border-top:1px solid #424b58;margin-top:16px;padding-top:12px}
+/* Keep configuration readable and its Save/Cancel controls always accessible. */
+dialog.ws-customize{position:fixed;inset:0;margin:auto;width:min(720px,calc(100vw - 40px));max-height:85vh;height:fit-content;box-sizing:border-box}
+dialog.ws-customize[open]{display:flex;flex-direction:column}
+.ws-customize-body{overflow:auto;flex:1;min-height:0;padding-right:4px}
+.ws-customize>h2,.ws-customize-footer{flex-shrink:0}
+.ws-customize>p[role=alert]:empty{display:none}
+.ws-customize .ws-menu-order-row{display:grid;grid-template-columns:22px minmax(140px,1fr) 28px 28px 92px;gap:6px}
+.ws-customize .ws-menu-order-row>input[type=checkbox]{width:14px;margin:0;justify-self:center}
+.ws-customize .ws-menu-order-row>:is(input:not([type]),input[type=text],.ws-native-menu-name){width:100%;box-sizing:border-box;margin:0}
+.ws-customize .ws-menu-order-row>button{margin:0;min-height:28px;padding:4px}
+.ws-customize .ws-action-layout-row{display:grid;grid-template-columns:minmax(160px,1fr) minmax(140px,200px) 28px 28px;gap:6px;margin:7px 0}
+.ws-customize .ws-action-layout-row>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-customize .ws-action-layout-row>:is(select,button){width:100%;min-width:0;box-sizing:border-box;margin:0}
+
+/* Native hover help inserts text into the flex row and moves the hovered
+   control out from under a stationary pointer. Keep it out of the workspace
+   toolbar; native popover tooltips and accessible control labels still work. */
+html[data-wide-studio-workspace] #ProjectApp .MenuBar>.container>.mouseAction{display:none}
+.ws-link-controls{display:inline-flex;gap:4px;margin-left:8px}.ws-link-controls button{font:500 11px "Segoe UI",sans-serif;padding:3px 8px;border:1px solid #4b535e;border-radius:3px;background:#303640;color:#dce5ef;cursor:pointer}.ws-link-controls button:disabled{opacity:.45;cursor:default}.ws-link-controls button:not(:disabled):hover{background:#414c59}.ws-link-badge{position:absolute;right:3px;top:3px;padding:1px 4px;border-radius:3px;background:#263b49;color:#bde6ff;font:600 10px "Segoe UI",sans-serif;pointer-events:none;z-index:2}.ws-linked-clip{box-shadow:inset 0 -2px #78b6d6}

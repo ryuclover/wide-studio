@@ -140,6 +140,7 @@ export type BridgeMessageType =
   | 'WIDE_BRIDGE_PROBE'
   | 'WIDE_BRIDGE_READ_SNAPSHOT'
   | 'WIDE_BRIDGE_READ_SELECTION'
+  | 'WIDE_BRIDGE_IMPORT_RECEIPT'
   | 'WIDE_BRIDGE_DROP_TARGET'
   | 'WIDE_BRIDGE_OPEN_SMART_TOOL'
   | 'WIDE_BRIDGE_RESPONSE'
@@ -151,6 +152,7 @@ export const BridgeMessageTypeSchema = z.enum([
   'WIDE_BRIDGE_PROBE',
   'WIDE_BRIDGE_READ_SNAPSHOT',
   'WIDE_BRIDGE_READ_SELECTION',
+  'WIDE_BRIDGE_IMPORT_RECEIPT',
   'WIDE_BRIDGE_DROP_TARGET',
   'WIDE_BRIDGE_OPEN_SMART_TOOL',
   'WIDE_BRIDGE_RESPONSE',
@@ -175,6 +177,7 @@ export const BridgeRequestSchema = z.object({
     'WIDE_BRIDGE_PROBE',
     'WIDE_BRIDGE_READ_SNAPSHOT',
     'WIDE_BRIDGE_READ_SELECTION',
+    'WIDE_BRIDGE_IMPORT_RECEIPT',
     'WIDE_BRIDGE_DROP_TARGET',
   'WIDE_BRIDGE_OPEN_SMART_TOOL',
   ]),
@@ -209,4 +212,3 @@ export const BridgeResponseSchema = z.object({
     message: z.string(),
   }).optional(),
 });
-

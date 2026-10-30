@@ -6,6 +6,8 @@ import { globalProjectStore } from '../bridge/projectStore';
 import { mountWorkspace, setWorkspaceAppearance } from './workspace';
 import {runNativeAction} from './nativeActions';
 import {importMedia,extractionTransfer} from './importMedia';
+import {installUiLanguage} from '../i18n/interface';
+import {validLanguage} from '../i18n/catalog';
 
 console.log('[Wide Studio] Content script inicializado na página:', window.location.href);
 
@@ -35,6 +37,7 @@ const rememberProject = () => {
 new MutationObserver(rememberProject).observe(document.body, {childList:true,subtree:true,characterData:true});
 adapter.rememberProjectMetadata();
 if (window.location.pathname.startsWith('/app/')) { mountOverlayLauncher(); mountWorkspace(); }
+installUiLanguage(document,true);
 
 // Bridge de escuta de mensagens do Service Worker
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -45,12 +48,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       switch (message.type) {
+        case 'UI_LANGUAGE_CHANGED': {
+          if(!validLanguage(message.language))throw new Error('Idioma inválido.');
+          document.dispatchEvent(new CustomEvent('ws-ui-language',{detail:message.language}));sendResponse({success:true});break;
+        }
         case 'DROP_DRIVE_MEDIA': {
           const context=await adapter.readContext();if(context.project.id!==message.expectedProjectId)throw new Error('O projeto mudou.');
           sendResponse({success:true,data:await dropLoadedDriveMedia(message.driveKey,context.project.id,message.dropToken,bridgeClient)});break;
         }
-        case 'EXTRACT_IMPORT_BEGIN':case 'EXTRACT_IMPORT_CHUNK':case 'EXTRACT_IMPORT_FINISH':case 'EXTRACT_IMPORT_ABORT': {
-          const context=await adapter.readContext();sendResponse({success:true,data:await extractionTransfer(message,message.projectBinding==='persistent'?context.project.persistentId||context.project.id:context.project.id)});break;
+        case 'EXTRACT_IMPORT_BEGIN':case 'EXTRACT_IMPORT_CHUNK':case 'EXTRACT_IMPORT_FINISH':case 'EXTRACT_IMPORT_STATUS':case 'EXTRACT_IMPORT_ABORT': {
+          const context=await adapter.readContext();sendResponse({success:true,data:await extractionTransfer(message,message.projectBinding==='persistent'?context.project.persistentId||context.project.id:context.project.id,bridgeClient)});break;
         }
         case 'IMPORT_DRIVE_MEDIA': {
           const context=await adapter.readContext();if(context.project.id!==message.expectedProjectId)throw new Error('O projeto mudou durante o download.');
@@ -145,4 +152,3 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Retorna true para indicar resposta assíncrona ao chrome.runtime.sendMessage
   return true;
 });
-
