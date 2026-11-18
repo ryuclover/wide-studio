@@ -5,6 +5,7 @@ import { EditPlanSchema, validateCommandArgs } from '../commands/schemas';
 import { framesToSeconds, secondsToFrames } from '../commands/temporal';
 import { parseTimeString } from './selectors';
 import { ContentBridgeClient } from '../bridge/contentBridge';
+import {supportsEditor,usesOfficialApi} from '../integrations/wide/compatibility';
 
 // Observed on 1.7.12. Unknown versions and missing data fail closed.
 export class WideVideoAdapter implements EditorAdapter {
@@ -37,8 +38,8 @@ export class WideVideoAdapter implements EditorAdapter {
 
   async detect(): Promise<EditorDetectionResult> {
     const version = window.location.pathname.match(/^\/app\/(\d+\.\d+\.\d+)\//)?.[1] || null;
-    const supported = window.location.hostname === 'wide.video' && version === '1.7.12' && !!document.querySelector('.ProjectApp');
-    return { version, supported, message: supported ? 'Editor observado; navegação experimental' : 'Abra um projeto no wide.video 1.7.12.' };
+    const supported = window.location.hostname === 'wide.video' && supportsEditor(version) && !!document.querySelector('.ProjectApp');
+    return { version, supported, message: supported ? 'Editor conectado' : 'Abra um projeto em uma versão compatível do wide.video.' };
   }
   async capabilities(): Promise<string[]> { try { await this.snapshot(); return ['get_context', 'seek']; } catch { return []; } }
 
@@ -93,7 +94,8 @@ export class WideVideoAdapter implements EditorAdapter {
             selectionKnown: true,
           };
         }
-      } catch {
+      } catch(error) {
+        if(usesOfficialApi((await this.detect()).version))throw error;
         // Fallback silencioso para o método DOM se a ponte falhar
       }
     }
@@ -153,6 +155,10 @@ export class WideVideoAdapter implements EditorAdapter {
   }
 
   private async seek(frame: number, ctx: EditorContext): Promise<void> {
+    if(usesOfficialApi((await this.detect()).version)&&this.bridgeClient){
+      const time=framesToSeconds(frame,{numerator:ctx.composition.fpsNumerator,denominator:ctx.composition.fpsDenominator});
+      await this.bridgeClient.action({action:'seek',time,projectId:ctx.project.id.slice(0,ctx.project.id.lastIndexOf(':')),revision:ctx.revision});return;
+    }
     const input = document.querySelector<HTMLInputElement>('.ProjectTime .TimeView input');
     if (!input) throw new Error('CONTROL_UNAVAILABLE');
     const seconds = framesToSeconds(frame, { numerator: ctx.composition.fpsNumerator, denominator: ctx.composition.fpsDenominator });

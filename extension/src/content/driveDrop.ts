@@ -43,19 +43,25 @@ export function mountDriveDrop(bridge:ContentBridgeClient){
  let timer:ReturnType<typeof setTimeout>;const show=(text:string,sticky=false)=>{clearTimeout(timer);toast.textContent=text;toast.hidden=false;if(!sticky)timer=setTimeout(()=>toast.hidden=true,6500);};
  let active:{token:string;expires:number}|undefined,expiry:ReturnType<typeof setTimeout>;
  let lastRelease:{x:number;y:number;at:number}|undefined,lastCancel=0;
+ const cancelledTokens=new Set<string>();
+ const rememberCancellation=(token:string)=>{cancelledTokens.add(token);if(cancelledTokens.size>100)cancelledTokens.delete(cancelledTokens.values().next().value!);};
  const feedback=(token:string,error:string)=>{void chrome.runtime.sendMessage({type:'SW_DRIVE_DROP_FEEDBACK',dragToken:token,error}).catch(()=>{});};
- const cancel=(error:string)=>{if(!active)return;const token=active.token;active=undefined;clearTimeout(expiry);marker.hidden=true;show(error);feedback(token,error);};
+ const cancel=(error:string)=>{if(!active)return;const token=active.token;rememberCancellation(token);active=undefined;clearTimeout(expiry);marker.hidden=true;show(error);feedback(token,error);};
  const point=(x:number,y:number)=>{const row=driveRowAt(x,y);marker.hidden=!row||busy;if(row&&!busy){const r=row.querySelector('.clipsContainer')!.getBoundingClientRect();Object.assign(marker.style,{left:`${x}px`,top:`${r.top}px`,height:`${r.height}px`});}return row;};
  const insert=async(token:string,x:number,y:number)=>{
   active=undefined;clearTimeout(expiry);marker.hidden=true;
+  if(cancelledTokens.has(token)){feedback(token,'Arrasto cancelado. Nenhuma mídia foi adicionada.');return;}
   if(busy||!driveRowAt(x,y)){const error=busy?'Aguarde a inserção atual.':'Solte na área de clipes de uma camada desbloqueada.';show(error);feedback(token,error);return;}
   busy=true;show('Preparando mídia do Drive para a timeline…',true);
-  try{const target=await bridge.dropTarget({mode:'capture',x,y});const response=await chrome.runtime.sendMessage({type:'SW_DRIVE_DROP',dragToken:token,dropToken:target.token});if(!response?.success)throw new Error(response?.error||'Não foi possível inserir.');show(`${response.data.name} inserido em ${Number(response.data.time).toFixed(2)} s.`);}catch(e){const error=String(e).replace(/^(?:Error:\s*)+/,'');show(error);feedback(token,error);}finally{busy=false;}
+  try{const target=await bridge.dropTarget({mode:'capture',x,y});if(cancelledTokens.has(token))throw Error('Arrasto cancelado. Nenhuma mídia foi adicionada.');const response=await chrome.runtime.sendMessage({type:'SW_DRIVE_DROP',dragToken:token,dropToken:target.token});if(!response?.success)throw new Error(response?.error||'Não foi possível inserir.');show(`${response.data.name} inserido em ${Number(response.data.time).toFixed(2)} s.`);}catch(e){const error=String(e).replace(/^(?:Error:\s*)+/,'');show(error);feedback(token,error);}finally{busy=false;}
  };
  window.addEventListener('message',e=>{
   const frame=document.querySelector<HTMLIFrameElement>('.ws-drive-panel iframe'),m=e.data;
-  if(!frame||e.source!==frame.contentWindow||e.origin!==new URL(chrome.runtime.getURL('')).origin||m?.type!=='WIDE_DRIVE_POINTER'||!active||m.token!==active.token)return;
-  if(m.phase==='cancel'){cancel('Arrasto cancelado. Nenhuma mídia foi adicionada.');return;}
+  if(!frame||e.source!==frame.contentWindow||e.origin!==new URL(chrome.runtime.getURL('')).origin||m?.type!=='WIDE_DRIVE_POINTER'||typeof m.token!=='string'||!/^[-\w]{36}$/.test(m.token))return;
+  // Escape may arrive before the asynchronous receiver handshake. Keep its
+  // nonce so a buffered pointer-up cannot resurrect the cancelled gesture.
+  if(m.phase==='cancel'){rememberCancellation(m.token);if(active?.token===m.token)cancel('Arrasto cancelado. Nenhuma mídia foi adicionada.');return;}
+  if(!active||m.token!==active.token)return;
   if(!['move','drop'].includes(m.phase)||!Number.isFinite(m.x)||!Number.isFinite(m.y))return;
   if(active.expires<Date.now()){cancel('O arrasto expirou. Tente novamente.');return;}
   const r=frame.getBoundingClientRect(),x=r.left+m.x,y=r.top+m.y;
@@ -76,6 +82,7 @@ export function mountDriveDrop(bridge:ContentBridgeClient){
   if(m.protocol!==DRIVE_DROP_PROTOCOL||typeof m.dragToken!=='string'||!/^[-\w]{36}$/.test(m.dragToken)||busy){reply({success:false,error:'Receptor do Drive indisponível. Aguarde ou recarregue a página.'});return;}
   cancel('Arrasto anterior substituído.');active={token:m.dragToken,expires:Date.now()+120000};expiry=setTimeout(()=>cancel('O arrasto expirou. Tente novamente.'),120000);
   reply({success:true,data:{protocol:DRIVE_DROP_PROTOCOL}});
+  if(cancelledTokens.has(m.dragToken)){cancel('Arrasto cancelado. Nenhuma mídia foi adicionada.');return;}
   if(Number.isFinite(m.startedAt)&&Date.now()-m.startedAt<10000){if(lastCancel>=m.startedAt)cancel('Arrasto cancelado. Nenhuma mídia foi adicionada.');else if(lastRelease&&lastRelease.at>=m.startedAt)void insert(m.dragToken,lastRelease.x,lastRelease.y);}
  });
  const ours=(e:DragEvent)=>e.dataTransfer?.types.includes(DRIVE_DRAG_TYPE);

@@ -91,7 +91,7 @@ chrome.action?.onClicked?.addListener(async tab => {
 
   if (!tab.id || !tab.url || new URL(tab.url).hostname !== 'wide.video') {
 
-    await chrome.tabs.create({ url: 'https://wide.video/app/1.7.12/' }); return;
+    await chrome.tabs.create({ url: 'https://wide.video/app/1.8.0/' }); return;
 
   }
 

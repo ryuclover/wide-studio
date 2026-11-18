@@ -2,6 +2,7 @@ import {puppeteer} from '../node_modules/chrome-devtools-mcp/build/src/third_par
 import {resolve} from 'node:path';
 import {readFileSync,writeFileSync,readdirSync} from 'node:fs';
 import assert from 'node:assert/strict';
+const stagedExtension=process.env.WIDE_TEST_EXTENSION||'.browser/drive-test';
 const expectedError=process.env.EXTRACT_EXPECT_ERROR;
 const url=process.env.EXTRACT_TEST_URL||'https://x.com/i/status/1790637656616943991',label=expectedError?'youtube-limit':url.includes('instagram')?'instagram':url.includes('x.com')?'x':'youtube';
 const browser=await puppeteer.launch({executablePath:resolve('.browser/chrome/win64-156.0.8078.47/chrome-win64/chrome.exe'),headless:true,pipe:true,enableExtensions:true,protocolTimeout:90000,defaultViewport:{width:1440,height:900},args:['--no-first-run']});
@@ -11,13 +12,13 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 try{
  // The headless browser cannot accept Chrome's native optional-host permission prompt.
  // Grant only this test's source hosts in the disposable staged manifest, never in dist/release.
- const manifestPath=resolve('.browser/drive-test/manifest.json'),manifest=JSON.parse(readFileSync(manifestPath,'utf8'));
+ const manifestPath=resolve(stagedExtension,'manifest.json'),manifest=JSON.parse(readFileSync(manifestPath,'utf8'));
  const hosts=url.includes('youtube')||url.includes('youtu.be')?['https://tubdown.com/*']:url.includes('instagram')?['https://snapinsta.ai/*','https://d.rapidcdn.app/*']:['https://api.fxtwitter.com/*','https://video.twimg.com/*'];
  manifest.host_permissions=[...new Set([...manifest.host_permissions,...hosts])];writeFileSync(manifestPath,JSON.stringify(manifest,null,2));
- const id=await browser.installExtension(resolve('.browser/drive-test'));
+ const id=await browser.installExtension(resolve(stagedExtension));
  const page=await browser.newPage();page.on('pageerror',e=>console.log('EDITOR ERROR',e.message));
  if(process.env.EXTRACT_SAVED_PROJECT)await page.evaluateOnNewDocument(()=>{window.showDirectoryPicker=async()=>{const root=await navigator.storage.getDirectory();return root.getDirectoryHandle('extract-saved-test',{create:true});};});
- await page.goto('https://wide.video/app/1.7.12/');await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Open Temporary Project')));await page.evaluate(saved=>[...document.querySelectorAll('button')].find(b=>b.textContent.includes(saved?'Open Project':'Open Temporary Project')).click(),!!process.env.EXTRACT_SAVED_PROJECT);
+ await page.goto(`https://wide.video/app/${process.env.WIDE_TEST_VERSION||'1.7.12'}/`);await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Open Temporary Project')));await page.evaluate(saved=>[...document.querySelectorAll('button')].find(b=>b.textContent.includes(saved?'Open Project':'Open Temporary Project')).click(),!!process.env.EXTRACT_SAVED_PROJECT);
  await page.waitForSelector('.ws-extract-panel');
  if(process.env.EXTRACT_FILTERED_LIBRARY){
   await page.evaluate(()=>{const files=new DataTransfer();for(let i=0;i<5;i++)files.items.add(new File(['<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="blue"/></svg>'],`seed-${i}.svg`,{type:'image/svg+xml'}));document.querySelector('.MediaListView').dispatchEvent(new DragEvent('drop',{dataTransfer:files,bubbles:true,cancelable:true}));});

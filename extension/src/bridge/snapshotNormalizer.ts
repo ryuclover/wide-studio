@@ -1,3 +1,4 @@
+import {supportsEditor} from '../integrations/wide/compatibility';
 import {
   ProjectSnapshot,
   TrackSnapshot,
@@ -252,7 +253,7 @@ export function normalizeNativeProject(
   const revision = JSON.stringify([projectVersion,raw.activity?.time,raw.presentation?.scene,tracks,clips,selSignature,selection.trackIds]);
 
   // Capacidades estritas baseadas em requisitos comprovados
-  const canSeek = editorVersion==='1.7.12' && playheadFrame !== null && fps !== null;
+  const canSeek = supportsEditor(editorVersion) && playheadFrame !== null && fps !== null;
   const capabilities: CapabilityState[] = [
     {
       id: 'transport.seek',

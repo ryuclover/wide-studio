@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {Window} from 'happy-dom';
 import {SmoothHistory} from '../src/content/smoothHistory';
+import {withHistoryBatch} from '../src/content/historyBatch';
 const win=new Window();for(const key of ['window','document','Element'])Object.defineProperty(globalThis,key,{value:key==='window'?win:(win as any)[key],configurable:true});
 const doc=win.document;doc.body.innerHTML='<div id="ProjectApp"><div class="EditMenu"></div><div class="TimelineClipContainer"></div></div>';
 const root=doc.querySelector<HTMLElement>('#ProjectApp')!,menu=doc.querySelector('.EditMenu') as any,node=doc.querySelector('.TimelineClipContainer') as any;
@@ -24,5 +25,10 @@ const hidden={load:{source:'text',text:'offscreen'},filter:[{kind:'delay',time:7
 node.dispatchEvent(new win.PointerEvent('pointerdown',{bubbles:true,button:0,isPrimary:true}));
 for(const [target,time]of [[hidden,8],[clip,4]] as const){node.dispatchEvent(new win.CustomEvent('NY',{bubbles:true,detail:new Move({project,clip:target,presentationTime:time})}));target.filter.find((f:any)=>f.kind==='delay')!.time=time;}
 doc.dispatchEvent(new win.PointerEvent('pointerup',{bubbles:true}));project.metadata.version++;point={previous:point.current,current:snapshot(project.metadata.version,['Update filter Start Time'])};engine.observe(project,point);assert.equal(engine.states.at(-1)?.move,undefined,'offscreen member uses full snapshot rather than partially undoing a linked group');
+menu.data.versionPoint=point;engine.reset();engine.observe(project,{current:point.current});const batchBase=project.presentation.scene.duration,batchStates=engine.states.length;
+await withHistoryBatch(project,async()=>{assert.equal(engine.can(-1),false,'history is unavailable during replacement');
+ for(let i=0;i<2;i++){project.presentation.scene.duration++;project.metadata.version++;point={previous:point.current,current:snapshot(project.metadata.version,[i?'Remove clips':'Add clip'])};menu.data.versionPoint=point;engine.observe(project,point);assert.equal(engine.states.length,batchStates,'intermediate replacement snapshots are not exposed');}
+});
+engine.observe(project,point);assert.equal(engine.states.length,batchStates+1,'replacement produces one logical history step');assert.equal((await engine.apply(-1)).mode,'snapshot');assert.equal(project.presentation.scene.duration,batchBase,'one undo restores the pre-replacement state');
 engine.dispose();await win.happyDOM.close();
 console.log('Smooth history: exact direct move, async-save barrier, redo branch, native snapshot boundary, unchanged project identity and keyboard routing passed.');

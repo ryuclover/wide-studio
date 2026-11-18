@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {Window} from 'happy-dom';
+import {observeEditor} from '../src/core/editorActivity';
+import {withHistoryBatch} from '../src/core/historyBatch';
+const win=new Window();const doc=win.document;
+Object.defineProperty(globalThis,'document',{value:doc,configurable:true});
+let updates=0;const stop=observeEditor(()=>updates++,doc as any);
+const settle=()=>new Promise(resolve=>setTimeout(resolve,80));
+await settle();const initial=updates;
+await withHistoryBatch({},async()=>{await settle();assert.equal(updates,initial+1,'batch start invalidates controls');});
+await settle();assert.equal(updates,initial+2,'batch finish invalidates controls even without a native edit or DOM change');
+const idle=updates;await new Promise(resolve=>setTimeout(resolve,1100));
+assert.equal(updates,idle,'idle reference checks do not repaint features');
+stop();await win.happyDOM.close();
+console.log('Shared editor activity: batch start/end repaint, unchanged native version, idle suppression and cleanup passed.');

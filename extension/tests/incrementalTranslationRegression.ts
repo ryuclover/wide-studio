@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import {Window} from 'happy-dom';
+import {installUiLanguage} from '../src/i18n/interface';
+
+const win=new Window({url:'https://wide.video/app/1.8.0/'});
+const doc=win.document;
+(globalThis as any).chrome={runtime:{sendMessage:async()=>({success:true,data:{language:'pt-BR'}})},storage:{onChanged:{addListener(){},removeListener(){}}}};
+doc.body.innerHTML='<div id="ProjectApp"><div id="wide-studio-workspace"></div>'+Array.from({length:1000},()=>'<button>Duplicate Clip</button>').join('')+'</div>';
+const stop=installUiLanguage(doc as any,true);
+const settle=()=>new Promise(resolve=>setTimeout(resolve,100));
+await settle();
+const roots:unknown[]=[];
+const original=doc.createTreeWalker.bind(doc);
+doc.createTreeWalker=((...args:any[])=>{roots.push(args[0]);return (original as any)(...args);}) as any;
+const button=doc.createElement('button');button.textContent='Proxy Generator';
+doc.querySelector('#ProjectApp')!.append(button);
+await settle();
+assert.equal(button.textContent,'Gerador de proxy');
+assert.ok(!roots.includes(doc.body),'small DOM changes must not rescan the entire document');
+assert.equal(roots.length,1,'only the inserted subtree is traversed');
+roots.length=0;await settle();
+assert.equal(roots.length,0,'idle translation performs no scans');
+const select=doc.querySelector('select')!;select.value='original';select.dispatchEvent(new win.Event('change'));
+await settle();assert.ok(roots.includes(doc.body),'language changes restore all translated controls');
+assert.equal(button.textContent,'Proxy Generator');
+stop();await win.happyDOM.close();
+console.log('Incremental translation: 1,000 controls, local mutation without body scan, idle without scans and complete language restoration passed.');

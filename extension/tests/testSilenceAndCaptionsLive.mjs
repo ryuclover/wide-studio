@@ -1,5 +1,6 @@
 import { puppeteer } from '../node_modules/chrome-devtools-mcp/build/src/third_party/index.js';
 import { resolve } from 'node:path';
+import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const executable = resolve('.browser/chrome/win64-156.0.8078.47/chrome-win64/chrome.exe');
@@ -20,7 +21,7 @@ try {
 
   const page = await browser.newPage();
   console.log('Navigating to wide.video app...');
-  await page.goto('https://wide.video/app/1.7.12/');
+  await page.goto(`https://wide.video/app/${process.env.WIDE_TEST_VERSION||'1.7.12'}/`);
 
   await page.waitForFunction(() => [...document.querySelectorAll('button')].some(b => b.textContent.includes('Open Temporary Project')));
   await page.evaluate(() => [...document.querySelectorAll('button')].find(b => b.textContent.includes('Open Temporary Project')).click());
@@ -318,6 +319,12 @@ try {
   console.log('SRT Captions result:', JSON.stringify(srtResult, null, 2));
   await page.screenshot({ path: '../docs/evidence/live-captions-timeline.png' });
 
+  assert.ok(selectSourceResult.hasSilenceView);
+  assert.ok(silenceViewDetails.composed);
+  assert.ok(silenceViewDetails.finalClipsCount>1);
+  assert.equal(undoResult.clipsCountAfterUndo,1);
+  assert.ok(srtResult.allClips.some(clip=>clip.hasCaptions));
+  console.log('PASS native silence removal, undo and caption clip creation');
   // Save evidence
   const evidence = {
     importResult,
@@ -335,6 +342,7 @@ try {
 
 } catch (err) {
   console.error('Error during test:', err);
+  throw err;
 } finally {
   await browser.close();
   console.log('Browser closed.');

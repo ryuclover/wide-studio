@@ -48,7 +48,9 @@ export class ContentBridgeClient {
   }
   private async ensureReady(){if(!this.ready)await this.handshake();}
   async probe(){await this.ensureReady();return this.sendRequest<{appElementFound:boolean;projectObjectFound:boolean;hasPresentation:boolean;hasSelection:boolean;version:string|null}>('WIDE_BRIDGE_PROBE');}
-  async readSnapshot(){await this.ensureReady();return this.sendRequest<ProjectSnapshot>('WIDE_BRIDGE_READ_SNAPSHOT');}
+  // The host lazily loads its public API on the first read.
+  async readSnapshot(){await this.ensureReady();return this.sendRequest<ProjectSnapshot>('WIDE_BRIDGE_READ_SNAPSHOT',undefined,15000);}
+  async action(payload:{action:'addText'}|{action:'seek';time:number;projectId:string;revision:string}){await this.ensureReady();return this.sendRequest<ProjectSnapshot>('WIDE_BRIDGE_ACTION',payload,15000);}
   async readSelection(){await this.ensureReady();return this.sendRequest<{kind:string;hasValue:boolean}>('WIDE_BRIDGE_READ_SELECTION');}
   async openSmartTool(tool:'silenceRemover'|'captionsGenerator'){await this.ensureReady();return this.sendRequest<{tool:string;triggered:boolean}>('WIDE_BRIDGE_OPEN_SMART_TOOL',{tool});}
   async importReceipt(payload:unknown):Promise<MediaReceipt>{await this.ensureReady();return this.sendRequest('WIDE_BRIDGE_IMPORT_RECEIPT',payload);}

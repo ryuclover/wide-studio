@@ -7,7 +7,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
 let page;
 try{
  const extensionId=await browser.installExtension(resolve('.browser/drive-test'));page=await browser.newPage();page.on('pageerror',e=>console.log('PAGEERROR',e.message));
- await page.goto('https://wide.video/app/1.7.12/');await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Open Temporary Project')));await page.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Open Temporary Project')).click());
+ await page.goto(`https://wide.video/app/${process.env.WIDE_TEST_VERSION||'1.7.12'}/`);await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Open Temporary Project')));await page.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Open Temporary Project')).click());
  await page.waitForSelector('[data-ws-marquee-toggle]');
  await page.evaluate(()=>{const files=new DataTransfer();for(const [i,color]of ['#e85454','#5389de','#d3ab44'].entries()){files.items.add(new File([`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="${color}"/></svg>`],`Selection-${i+1}.svg`,{type:'image/svg+xml'}));}document.querySelector('.MediaListView').dispatchEvent(new DragEvent('drop',{dataTransfer:files,bubbles:true,cancelable:true}));});
  await page.waitForFunction(()=>document.querySelectorAll('.MediaListView .MediaView.mediaContent-valid').length===3,{timeout:45000});

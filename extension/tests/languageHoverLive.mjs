@@ -2,7 +2,7 @@ import {puppeteer} from '../node_modules/chrome-devtools-mcp/build/src/third_par
 import {resolve} from 'node:path';import {writeFileSync} from 'node:fs';import assert from 'node:assert/strict';
 const browser=await puppeteer.launch({executablePath:resolve('.browser/chrome/win64-156.0.8078.47/chrome-win64/chrome.exe'),headless:true,pipe:true,enableExtensions:true,defaultViewport:{width:1500,height:1000},args:['--no-first-run']});const pause=ms=>new Promise(r=>setTimeout(r,ms));let page;
 try{
- await browser.installExtension(resolve('.browser/drive-test'));page=await browser.newPage();await page.goto('https://wide.video/app/1.7.12/');await page.waitForSelector('.Intro button.openProjectOPFS');await page.click('.Intro button.openProjectOPFS');await page.waitForSelector('.ws-language-control select');await page.select('.ws-language-control select','pt-BR');await page.waitForFunction(()=>document.querySelector('.ProjectMenu').textContent.trim()==='Projeto');
+ await browser.installExtension(resolve('.browser/drive-test'));page=await browser.newPage();await page.goto(`https://wide.video/app/${process.env.WIDE_TEST_VERSION||'1.7.12'}/`);await page.waitForSelector('.Intro button.openProjectOPFS');await page.click('.Intro button.openProjectOPFS');await page.waitForSelector('.ws-language-control select');await page.select('.ws-language-control select','pt-BR');await page.waitForFunction(()=>document.querySelector('.ProjectMenu').textContent.trim()==='Projeto');
  const results=[];
  for(const width of [1500,1280,1000]){
   await page.mouse.move(400,500);await page.setViewport({width,height:1000});await pause(500);const box=await(await page.$('.ws-language-control select')).boundingBox();const point={x:box.x+box.width/2,y:box.y+box.height/2};

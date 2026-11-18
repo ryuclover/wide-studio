@@ -7,7 +7,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
 let page;
 try{
  const extensionId=await browser.installExtension(resolve('.browser/drive-test'));page=await browser.newPage();page.on('pageerror',e=>console.log('PAGEERROR',e.message));
- await page.evaluateOnNewDocument(()=>{window.showDirectoryPicker=async()=>{const root=await navigator.storage.getDirectory();return root.getDirectoryHandle('wide-studio-history-test',{create:true});};});await page.goto('https://wide.video/app/1.7.12/');await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Open Project')));await page.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Open Project')).click());
+ await page.evaluateOnNewDocument(()=>{window.showDirectoryPicker=async()=>{const root=await navigator.storage.getDirectory();return root.getDirectoryHandle('wide-studio-history-test',{create:true});};});await page.goto(`https://wide.video/app/${process.env.WIDE_TEST_VERSION||'1.7.12'}/`);await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Open Project')));await page.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Open Project')).click());
  await page.waitForSelector('[data-ws-marquee-toggle]');
  await page.evaluate(()=>{const files=new DataTransfer();for(const [i,color]of ['#e85454','#5389de','#d3ab44'].entries()){files.items.add(new File([`<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="${color}"/></svg>`],`Selection-${i+1}.svg`,{type:'image/svg+xml'}));}document.querySelector('.MediaListView').dispatchEvent(new DragEvent('drop',{dataTransfer:files,bubbles:true,cancelable:true}));});
  await page.waitForFunction(()=>document.querySelectorAll('.MediaListView .MediaView.mediaContent-valid').length===3,{timeout:45000});
@@ -24,7 +24,7 @@ try{
 
  await page.waitForSelector('[data-ws-link-action="link"]');
  const select=async(indices)=>{await page.evaluate(indices=>{const panel=document.querySelector('.MediaPanel');panel.onMediaListSelectMedia(undefined,false);const nodes=[...document.querySelectorAll('.TimelineClipContainer')];for(const i of indices)nodes[i].onClick(new MouseEvent('click',{ctrlKey:true,cancelable:true}));},indices);await pause(350);};
- const move=async(index,delta)=>{const box=await(await page.$$('.TimelineClipContainer'))[index].boundingBox();await page.mouse.move(box.x+30,box.y+20);await page.mouse.down();await page.mouse.move(box.x+30+delta,box.y+20,{steps:20});await page.mouse.up();await pause(1000);};
+ const move=async(index,delta)=>{const box=await(await page.$$('.TimelineClipContainer'))[index].boundingBox();await page.mouse.move(box.x+30,box.y+20);await page.mouse.down();await pause(80);await page.mouse.move(box.x+30+Math.sign(delta)*8,box.y+20,{steps:4});await pause(80);await page.mouse.move(box.x+30+delta,box.y+20,{steps:20});await page.mouse.up();await pause(1000);};
  // Seed native positioning before measuring the smooth-history path.
  await select([0]);await move(0,30);
  await select([0,1]);await page.click('.TimelineClipContainer',{button:'right'});await page.waitForSelector('dialog.ContextMenu[open] .ws-context-link:not(.disabled)');await page.click('dialog.ContextMenu[open] .ws-context-link');assert.equal(await page.$('dialog.ContextMenu[open]'),null,'native menu closes after linking');await page.waitForFunction(()=>document.querySelectorAll('.ws-link-badge').length===2);

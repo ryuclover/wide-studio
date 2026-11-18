@@ -1,15 +1,19 @@
 import {puppeteer} from '../node_modules/chrome-devtools-mcp/build/src/third_party/index.js';
 import {resolve} from 'node:path';
-import {writeFileSync} from 'node:fs';
+import {readFileSync,writeFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 console.log('Starting isolated Chrome');
 const browser=await puppeteer.launch({executablePath:resolve('.browser/chrome/win64-156.0.8078.47/chrome-win64/chrome.exe'),headless:true,pipe:true,enableExtensions:true,protocolTimeout:30000,defaultViewport:{width:1440,height:900},args:['--no-first-run']});
 console.log('Chrome ready');
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 try{
+ // Headless Chrome cannot show the optional-host permission prompt. Grant
+ // only the disposable test manifest; production keeps optional permissions.
+ const manifestPath=resolve('.browser/drive-test/manifest.json'),manifest=JSON.parse(readFileSync(manifestPath,'utf8'));
+ manifest.host_permissions=[...new Set([...manifest.host_permissions,'https://drive.google.com/*','https://drive.usercontent.google.com/*','https://lh3.googleusercontent.com/*'])];writeFileSync(manifestPath,JSON.stringify(manifest,null,2));
  await browser.installExtension(resolve('.browser/drive-test'));console.log('Extension installed');
  const page=await browser.newPage();page.on('pageerror',e=>console.log('PAGEERROR',e.message));
- await page.goto('https://wide.video/app/1.7.12/');console.log('Editor loaded');
+ await page.goto(`https://wide.video/app/${process.env.WIDE_TEST_VERSION||'1.7.12'}/`);console.log('Editor loaded');
  await page.waitForFunction(()=>[...document.querySelectorAll('button')].some(b=>b.textContent.includes('Open Temporary Project')));
  await page.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent.includes('Open Temporary Project')).click());
  await page.waitForSelector('.ws-drive-panel');await page.evaluate(()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Drive').click());
@@ -35,6 +39,7 @@ try{
  await gesture({inside:true});await frame.waitForFunction(()=>document.querySelector('.drive-feedback').textContent.includes('desbloqueada'));assert.equal((await read()).clips.length,2);
  const worker=await (await browser.waitForTarget(t=>t.type()==='service_worker')).worker();
  await worker.evaluate(()=>{const original=chrome.tabs.sendMessage.bind(chrome.tabs);chrome.tabs.sendMessage=async(...args)=>{if(args[1]?.type==='PREPARE_DRIVE_DROP')await new Promise(r=>setTimeout(r,900));return original(...args);};});
+ await gesture({fast:true,cancel:true,fraction:.5});await frame.waitForFunction(()=>document.querySelector('.drive-feedback').textContent.includes('cancelado'));assert.equal((await read()).clips.length,2,'Escape before delayed arming never inserts');
  await gesture({fast:true,fraction:.5});await page.waitForFunction(()=>document.querySelectorAll('.TimelineClipContainer').length===3,{timeout:25000});await frame.waitForFunction(()=>document.querySelector('.drive-feedback').textContent.includes('inserido em'));const fast=await read();assert.equal(fast.media,1);console.log('FAST',JSON.stringify(fast));
  await (await source()).click();await frame.waitForSelector('.drive-preview');await frame.click('[aria-label="Fechar prévia"]');assert.equal((await read()).clips.length,3,'click after drag opens preview without inserting');
  await page.screenshot({path:'../docs/evidence/drive-pointer-real.png'});

@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import {validateMergeSelection,mergeSignature} from '../src/content/mergeClips';
+import {withHistoryBatch,subscribeHistoryBatch} from '../src/content/historyBatch';
+const a={load:{source:'text',text:'A'}},b={load:{source:'text',text:'B'}},outside:any={load:{source:'shape'}};
+const project:any={metadata:{appVersion:'1.7.12'},presentation:{scene:{duration:20},layer:[{clip:[a,b]},{clip:[outside]}]}};
+const times=new Map<any,any>([[a,{presentation:{start:2,end:5,span:3}}],[b,{presentation:{start:7,end:9,span:2}}],[outside,{presentation:{start:0,end:10,span:10}}]]),timing=(c:any)=>times.get(c);
+assert.deepEqual(validateMergeSelection(project,new Set([a,b]),timing),{start:2,end:9},'gaps and relative timing remain part of the rendered interval');
+assert.throws(()=>validateMergeSelection(project,new Set([a]),timing),/dois/);
+project.presentation.layer[0].locked=true;assert.throws(()=>validateMergeSelection(project,new Set([a,b]),timing),/Desbloqueie/);delete project.presentation.layer[0].locked;
+outside.filter=[{kind:'mask',clip:a}];assert.throws(()=>validateMergeSelection(project,new Set([a,b]),timing),/dependência/);delete outside.filter;
+const signature=mergeSignature(project,timing);times.get(a).presentation.start=3;assert.notEqual(mergeSignature(project,timing),signature,'moving a source invalidates an in-flight plan');
+const seen:any[]=[];const stop=subscribeHistoryBatch((p,busy)=>seen.push([p,busy]));await withHistoryBatch(project,async()=>{seen.push('work');});assert.deepEqual(seen,[[project,true],'work',[project,false]]);
+await assert.rejects(()=>withHistoryBatch(project,async()=>{throw Error('cancel');}),/cancel/);assert.deepEqual(seen.at(-1),[project,false],'errors release the history batch');stop();
+console.log('PASS merge range, locked/missing/dependent source guards, revision validation and history batch cleanup');

@@ -4,7 +4,7 @@ import { toggleOverlay, mountOverlayLauncher } from './overlay';
 import { ContentBridgeClient } from '../bridge/contentBridge';
 import { globalProjectStore } from '../bridge/projectStore';
 import { mountWorkspace, setWorkspaceAppearance } from './workspace';
-import {runNativeAction} from './nativeActions';
+import {runNativeAction,configureNativeActions} from './nativeActions';
 import {importMedia,extractionTransfer} from './importMedia';
 import {installUiLanguage} from '../i18n/interface';
 import {validLanguage} from '../i18n/catalog';
@@ -13,6 +13,7 @@ console.log('[Wide Studio] Content script inicializado na página:', window.loca
 
 const adapter = WideVideoAdapter.getInstance();
 const bridgeClient = new ContentBridgeClient(`cs-runtime-${Date.now()}`);
+configureNativeActions(action=>bridgeClient.action({action}));
 bridgeClient.init();
 adapter.setBridgeClient(bridgeClient);
 mountDriveDrop(bridgeClient);
@@ -34,7 +35,8 @@ const rememberProject = () => {
   clearTimeout(metadataTimer);
   metadataTimer = setTimeout(() => adapter.rememberProjectMetadata(), 100);
 };
-new MutationObserver(rememberProject).observe(document.body, {childList:true,subtree:true,characterData:true});
+// 1.8 supplies project identity through the official bridge. Older hosts need visible metadata.
+if (!window.location.pathname.startsWith('/app/1.8.0/')) new MutationObserver(rememberProject).observe(document.body, {childList:true,subtree:true,characterData:true});
 adapter.rememberProjectMetadata();
 if (window.location.pathname.startsWith('/app/')) { mountOverlayLauncher(); mountWorkspace(); }
 installUiLanguage(document,true);

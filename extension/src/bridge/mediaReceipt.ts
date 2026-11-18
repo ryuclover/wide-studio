@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {nativeMediaPhase,nativeMediaError} from '../integrations/wide/media';
 
 const Token=z.string().uuid();
 export const MediaReceiptRequest=z.discriminatedUnion('mode',[
@@ -28,7 +29,7 @@ export class NativeMediaReceipts {
   const record=this.records.get(request.token);if(!record)throw new Error('Recibo de importação expirado.');
   if(record.project.deref()!==project)throw new Error('O projeto mudou durante a importação.');
   const media=list.find((m:any)=>!record.previous.has(m)&&m.original?.file?.name===record.name&&m.original.file.size===record.bytes);
-  const kind=media?.content?.kind;
-  return {phase:kind==='valid'?'valid':kind==='invalid'?'invalid':media?'probing':'waiting',name:record.name,bytes:record.bytes,...(kind==='invalid'?{reason:String(media.content.reason||'O editor recusou esta mídia.').slice(0,400)}:{})};
+  const kind=nativeMediaPhase(media);
+  return {phase:kind,name:record.name,bytes:record.bytes,...(kind==='invalid'?{reason:nativeMediaError(media)}:{})};
  }
 }
