@@ -1,0 +1,44 @@
+import {puppeteer} from '../node_modules/chrome-devtools-mcp/build/src/third_party/index.js';
+import {resolve} from 'node:path';
+import assert from 'node:assert/strict';
+const version='1.8.0';
+const browser=await puppeteer.launch({executablePath:resolve('.browser/chrome/win64-156.0.8078.47/chrome-win64/chrome.exe'),headless:true,pipe:true,enableExtensions:true,defaultViewport:{width:1440,height:1000},args:['--no-first-run']});
+let page;
+try{
+ await browser.installExtension(resolve('.browser/drive-test'));page=await browser.newPage();
+ await page.evaluateOnNewDocument(()=>{window.showDirectoryPicker=async()=>{const root=await navigator.storage.getDirectory();return root.getDirectoryHandle('wide-text-latency-test',{create:true});};});
+ await page.goto(`https://wide.video/app/${version}/`);await page.waitForSelector('.Intro button.openProject');await page.click('.Intro button.openProject');await page.waitForSelector('[data-native-action=addText]');await page.$eval('[data-native-action=addText]',button=>button.click());await page.waitForSelector('.TimelineClipContainer');await new Promise(resolve=>setTimeout(resolve,600));
+ await page.waitForSelector('.FontFamilyRow button.openSelector');await page.$eval('.FontFamilyRow button.openSelector',button=>button.click());
+ await page.waitForSelector('.FontSelector .ws-font-favorites-tab');
+ await page.click('.FontSelector .bar button.safe');
+ await page.waitForSelector('.FontSelector .list .ws-font-star');
+
+ const before=await page.$eval('.FontSelector',s=>s.init.current);
+ const starred=await page.$eval('.FontSelector .list .FontRenderer',r=>({value:r.value,provider:r.provider}));
+ await page.click('.FontSelector .list .ws-font-star');
+ assert.ok(await page.$('.FontSelector'),'starring does not select a font or close the dialog');
+ assert.deepEqual(await page.$eval('.FontSelector',s=>s.init.current),before);
+ await page.click('.ws-font-favorites-tab');
+ await page.waitForFunction(()=>document.querySelector('.FontSelector')?.data.kind==='ws-favorites'&&document.querySelector('.FontSelector .list .ws-font-star'));
+ assert.equal(await page.$eval('.FontSelector .list',s=>s.querySelectorAll('.FontRenderer').length),1);
+ assert.equal(await page.$eval('.FontSelector .list .FontRenderer',r=>r.value),starred.value);
+ await page.click('.FontSelector .bar button.google');await page.waitForSelector('.FontSelector .list .ws-font-star');
+ await page.click('.FontSelector .list .ws-font-star');await page.click('.ws-font-favorites-tab');
+ await page.waitForFunction(()=>document.querySelector('.FontSelector .list')?.querySelectorAll('.FontRenderer').length===2);
+ await page.$eval('.FontSelector',s=>{s.filterElement.value='not-a-real-font-zzzz';s.filterElement.dispatchEvent(new Event('input',{bubbles:true}));});
+ await page.waitForFunction(()=>[...document.querySelectorAll('.FontSelector .list .FontRenderer')].every(r=>r.classList.contains('hidden')));
+ await page.$eval('.FontSelector',s=>{s.filterElement.value='';s.filterElement.dispatchEvent(new Event('input',{bubbles:true}));});
+ await page.waitForFunction(()=>[...document.querySelectorAll('.FontSelector .list .FontRenderer')].every(r=>!r.classList.contains('hidden')));
+ await page.$eval('.FontSelector',s=>[...s.listElement.children].find(r=>r.provider==='google').querySelector('.ws-font-star').click());
+ await page.waitForFunction(()=>document.querySelector('.FontSelector .list')?.children.length===1);
+ await page.evaluate(()=>{document.documentElement.dataset.wsLanguage='pt-BR';document.dispatchEvent(new Event('ws-ui-language'));});
+ await page.waitForFunction(()=>document.querySelector('.ws-font-favorites-tab')?.textContent==='Favoritos');
+ await page.screenshot({path:'../docs/evidence/font-favorites.png'});
+ await page.click('.FontSelector .list .FontRenderer');await page.waitForFunction(()=>!document.querySelector('.FontSelector'));
+ await page.$eval('.FontFamilyRow button.openSelector',button=>button.click());await page.waitForSelector('.ws-font-favorites-tab');await page.click('.ws-font-favorites-tab');
+ await page.waitForSelector('.FontSelector .list .ws-font-star.is-favorite');
+ await page.click('.FontSelector .list .ws-font-star');
+ await page.waitForFunction(()=>document.querySelector('.ws-font-favorites-note')?.textContent.includes('Nenhuma fonte'));
+ assert.equal(await page.$eval('.FontSelector .list',s=>s.children.length),0);
+ console.log('PASS font favorites: star without selecting, native font selection, Google/local fonts, filtering, Portuguese labels, reopen persistence, unstar and empty state');
+}catch(error){if(page)console.log('DEBUG',await page.evaluate(()=>({selector:document.querySelector('.FontSelector')?.outerHTML.slice(0,2500),kind:document.querySelector('.FontSelector')?.data,stored:localStorage.getItem('wide-studio.font-favorites.v1'),text:document.querySelector('.ProjectApp')?.project?.presentation.layer.flatMap(layer=>layer.clip).find(clip=>clip.load.source==='text')?.load.text,status:document.querySelector('.ws-text-editor-status')?.textContent,history:document.querySelector('.ws-history-status')?.textContent})));throw error;}finally{await browser.close();}

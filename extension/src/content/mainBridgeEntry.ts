@@ -10,3 +10,9 @@ import {installDirectClipDelete} from './directClipDelete';
 installDirectClipDelete();
 import {installLinkedClips} from './linkedClips';
 installLinkedClips();
+
+import {installTextEditor} from '../features/inspector/textEditor';
+installTextEditor();
+
+import {installFontFavorites} from '../features/fonts/favorites';
+installFontFavorites();

@@ -7,6 +7,7 @@ const delay=()=>new Promise(r=>setTimeout(r,40));
 export async function runNativeAction(root:HTMLElement,id:string){
   if(!actionLabels[id])throw new Error('Ação desconhecida.');
   if(id==='addText'&&officialAction&&usesOfficialApi(root.ownerDocument.location.pathname.split('/')[2])){await officialAction('addText');return;}
+  if(id==='split'&&['ready','disabled'].includes(root.ownerDocument.documentElement.dataset.wsBatchSplit||'')){root.ownerDocument.dispatchEvent(new CustomEvent('ws-request-batch-split'));return;}
   const direct=id==='split'?'.TimelinePanel .Controls button.split':id==='exportScreenshot'?'.PreviewPanel .Controls button.exportScreenshot':null;
   let target:HTMLButtonElement|null=null;
   if(direct)target=root.querySelector(direct);

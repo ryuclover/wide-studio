@@ -3,6 +3,8 @@ import {supportsEditor} from '../../integrations/wide/compatibility';
 import {translateUiText,sourceUiText,validLanguage} from '../../i18n/common';
 import {SmoothHistory} from './smoothHistory';
 import {captureHistoryViewport,restoreHistoryViewport} from './historyViewport';
+import {subscribeHistoryBatch} from '../../core/historyBatch';
+import {settlePendingEdits} from '../../core/historyBarrier';
 type Entry={version:number;reasons:string[];source:unknown};
 type Point={current?:any;previous?:any;next?:any};
 const KEY='__WIDE_STUDIO_HISTORY_UNINSTALL__';
@@ -57,13 +59,21 @@ export function installHistoryControls(){
   }panel.append(list);panel.scrollTop=panelScroll;
  };
  const perform=async(index:number)=>{
-  const live=parts();if(!live||busy||document.querySelector('dialog[open]:not(.ContextMenu)')||!smooth.can(index===0?-1:1))return;
+  const live=parts();if(!live||busy||document.querySelector('dialog[open]:not(.ContextMenu)'))return;
   const oldIdentity=identity,viewport=captureHistoryViewport(live.r,live.p);busy=true;feedback='';render();
-  try{await smooth.apply(index===0?-1:1);}catch(error){feedback=String(error).replace(/^Error: /,'');}
+  try{
+   await settlePendingEdits(live.p);
+   const now=parts();if(!now||now.p!==live.p)throw Error('O projeto mudou antes de desfazer.');
+   const point=now.m.data?.versionPoint;
+   if(point?.current?.version!==now.p.metadata.version)throw Error('Aguarde o salvamento da edição antes de desfazer.');
+   smooth.observe(now.p,point);
+   if(smooth.can(index===0?-1:1))await smooth.apply(index===0?-1:1);
+  }catch(error){feedback=String(error).replace(/^Error: /,'');}
   finally{busy=false;render();await new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));const now=parts();if(!stopped&&now&&identity===oldIdentity)restoreHistoryViewport(now.r,now.p,viewport);}
  };
  const click=(event:MouseEvent)=>{const target=event.target instanceof Element?event.target.closest<HTMLButtonElement>('[data-ws-history-action]'):null;if(!target||!event.isTrusted||target.disabled||busy||!document.documentElement.hasAttribute('data-wide-studio-workspace'))return;event.preventDefault();event.stopImmediatePropagation();target.closest<HTMLDialogElement>('dialog.ContextMenu')?.close();void perform(target.dataset.wsHistoryAction==='undo'?0:1);};
+ const stopBatchControls=subscribeHistoryBatch(project=>{if(parts()?.p===project)render();});
  const stopActivity=observeEditor(render);document.addEventListener('click',click,true);render();
- const uninstall=()=>{stopped=true;smooth.dispose();stopActivity();document.removeEventListener('click',click,true);window.removeEventListener('pagehide',uninstall);document.querySelectorAll('.ws-history-controls').forEach(n=>n.remove());if((window as any)[KEY]===uninstall)delete(window as any)[KEY];};
+ const uninstall=()=>{stopped=true;stopBatchControls();smooth.dispose();stopActivity();document.removeEventListener('click',click,true);window.removeEventListener('pagehide',uninstall);document.querySelectorAll('.ws-history-controls').forEach(n=>n.remove());if((window as any)[KEY]===uninstall)delete(window as any)[KEY];};
  window.addEventListener('pagehide',uninstall);(window as any)[KEY]=uninstall;return uninstall;
 }

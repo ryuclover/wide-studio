@@ -1,0 +1,38 @@
+import {puppeteer} from '../node_modules/chrome-devtools-mcp/build/src/third_party/index.js';
+import {resolve} from 'node:path';
+import assert from 'node:assert/strict';
+const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const version=process.env.WIDE_TEST_VERSION||'1.8.0';
+const browser=await puppeteer.launch({executablePath:resolve('.browser/chrome/win64-156.0.8078.47/chrome-win64/chrome.exe'),headless:true,pipe:true,enableExtensions:true,defaultViewport:{width:1440,height:1000},args:['--no-first-run']});
+let page;
+try{
+ await browser.installExtension(resolve('.browser/drive-test'));page=await browser.newPage();page.on('pageerror',error=>console.log('PAGEERROR',error.stack));
+ await page.evaluateOnNewDocument(()=>{window.showDirectoryPicker=async()=>{const root=await navigator.storage.getDirectory();return root.getDirectoryHandle('wide-text-editor-test',{create:true});};});
+ await page.goto(`https://wide.video/app/${version}/`);await page.waitForSelector('.Intro button.openProject');await page.click('.Intro button.openProject');await page.waitForSelector('[data-native-action=addText]');
+ const add=async count=>{await page.$eval('[data-native-action=addText]',button=>button.click());await page.waitForFunction(count=>document.querySelectorAll('.TimelineClipContainer').length===count,{},count);await page.waitForSelector(version==='1.8.0'?'.LoadTextForm':'.ClipExplorer');await pause(150);};
+ const select=async index=>{await page.evaluate(index=>{const node=document.querySelectorAll('.TimelineClipContainer')[index],descriptor=Object.getOwnPropertyDescriptor(node,'dispatcher');let captured;try{Object.defineProperty(node,'dispatcher',{configurable:true,value:{trigger(action){captured=action;}}});node.onClick(new MouseEvent('click'));}finally{if(descriptor)Object.defineProperty(node,'dispatcher',descriptor);else delete node.dispatcher;}if(!captured)throw Error('Selection command missing');node.trigger(new captured.constructor({...captured.data,preferFilter:false,modify:undefined,seek:false}));},index);await page.waitForSelector('#ws-text-content',{visible:true});await pause(200);};
+ await add(1);await select(0);
+ if(version==='1.8.0')await page.evaluate(async()=>{const p=await api.run('operation-project-get'),clip=p.presentation.layer.flatMap(layer=>layer.clip).find(clip=>clip.load.source==='text');await api.run('operation-clip-update',{clipId:clip.ID,update:{load:{...clip.load,setup:{...clip.load.setup,fontSize:68,textColor:'#ffffff',strokeColor:'#000000',strokeWidth:3}}}});});
+ await pause(600);await select(0);
+ const original=await page.evaluate(()=>{const clip=document.querySelector('.TimelineClipContainer').init.clip;window.__textField=document.querySelector('#ws-text-content');return {text:clip.load.text,setup:JSON.stringify(clip.load.setup),trim:JSON.stringify(clip.load.trim),width:clip.load.width,height:clip.load.height};});
+ const input=async text=>{await page.click('#ws-text-content');await page.keyboard.down('Control');await page.keyboard.press('a');await page.keyboard.up('Control');await page.type('#ws-text-content',text,{delay:10});};
+ const saved=async text=>{await page.waitForFunction(text=>document.querySelector('.TimelineClipContainer')?.init?.clip?.load?.text===text,{},text);await page.waitForFunction(()=>document.querySelector('.ws-text-editor-status')?.textContent==='Salvo');};
+ const text='Olá, mundo!\nTexto direto nas propriedades.';
+ await input(text);await saved(text);
+ const edited=await page.evaluate(()=>{const clip=document.querySelector('.TimelineClipContainer').init.clip,input=document.querySelector('#ws-text-content');return {text:clip.load.text,setup:JSON.stringify(clip.load.setup),trim:JSON.stringify(clip.load.trim),width:clip.load.width,height:clip.load.height,sameField:input===window.__textField,focused:document.activeElement===input,cursor:input.selectionStart};});
+ assert.equal(edited.setup,original.setup);assert.equal(edited.trim,original.trim);assert.equal(edited.width,original.width);assert.equal(edited.height,original.height);assert.ok(edited.sameField&&edited.focused,'autosave does not rebuild the field or lose focus');assert.equal(edited.cursor,text.length);
+ await page.type('#ws-text-content','!');await saved(text+'!');
+ await page.waitForFunction(()=>!document.querySelector('[data-ws-history-action=undo]')?.disabled);await page.click('[data-ws-history-action=undo]');await page.waitForFunction(text=>document.querySelector('.TimelineClipContainer')?.init?.clip?.load?.text===text,{},text);
+ await page.waitForFunction(()=>!document.querySelector('[data-ws-history-action=redo]')?.disabled);await page.click('[data-ws-history-action=redo]');await page.waitForFunction(text=>document.querySelector('.TimelineClipContainer')?.init?.clip?.load?.text===text,{},text+'!');await select(0);
+ await page.click('#ws-text-content');await page.keyboard.down('Control');await page.keyboard.press('a');await page.keyboard.up('Control');await page.keyboard.press('Backspace');await saved('');assert.equal(await page.$$eval('.TimelineClipContainer',nodes=>nodes.length),1,'Backspace edits text, never deletes the clip');
+ await input('1999');await page.keyboard.down('Control');await page.keyboard.press('Enter');await page.keyboard.up('Control');await saved('1999');
+ await page.screenshot({path:`../docs/evidence/text-properties-${version}.png`});
+ await add(2);await select(0);const firstIndex=0,secondIndex=1;
+ const beforeSwitch=await page.evaluate(()=>[...document.querySelectorAll('.TimelineClipContainer')].map(node=>node.init.clip.load.text));
+ await page.$eval('#ws-text-content',input=>{input.value='Rascunho salvo ao trocar';input.dispatchEvent(new Event('input',{bubbles:true}));});
+ await select(secondIndex);await page.waitForFunction(index=>document.querySelectorAll('.TimelineClipContainer')[index].init.clip.load.text==='Rascunho salvo ao trocar',{},firstIndex);
+ assert.equal(await page.$eval('#ws-text-content',input=>input.value),beforeSwitch[secondIndex],'switching clips never writes the old draft into the new clip');
+ await page.evaluate(()=>{const form=document.querySelector('.ClipExplorer').form;form.lockedRow.updateValue(true);form.submit('user');});await page.waitForFunction(()=>document.querySelector('#ws-text-content').readOnly);
+ await page.evaluate(()=>document.querySelector('.MediaPanel').onMediaListSelectMedia(undefined,false));await page.waitForFunction(()=>!document.querySelector('#ws-text-content'));
+ console.log(`PASS ${version}: inspector text, multiline autosave, unchanged style/timing, stable focus/cursor, undo/redo, empty text, keyboard guard, Ctrl+Enter, selection binding and lock`);
+}catch(error){if(page){console.log('DEBUG',await page.evaluate(()=>({selection:document.querySelector('.ProjectApp')?.project?.selection?.kind,modelText:document.querySelector('.ProjectApp')?.project?.presentation.layer.flatMap(layer=>layer.clip).map(clip=>clip.load.text),nodeText:[...document.querySelectorAll('.TimelineClipContainer')].map(node=>node.init.clip.load.text),history:document.querySelector('.ws-history-status')?.textContent,status:document.querySelector('.ws-text-editor-status')?.textContent,field:document.querySelector('#ws-text-content')?.value,explorer:document.querySelector('.ClipExplorer')?.outerHTML.slice(0,800)})));await page.screenshot({path:'../docs/evidence/text-editor-debug.png'});}throw error;}finally{await browser.close();}

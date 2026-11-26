@@ -11,7 +11,7 @@ const checks=external?[
  ['extract-x','extractLive',{EXTRACT_TEST_URL:'https://x.com/i/status/1790637656616943991'}],
  ['extract-instagram','extractLive',{EXTRACT_TEST_URL:'https://www.instagram.com/p/aye83DjauH/'}],
  ['extract-youtube-long','extractLive',{EXTRACT_TEST_URL:'https://www.youtube.com/watch?v=KjBJjVghsmM',EXTRACT_EXPECT_LONG:'1',EXTRACT_SAVED_PROJECT:'1',EXTRACT_FILTERED_LIBRARY:'1',EXTRACT_TEST_RECOVERY:'1'}]
-]:['directTextLive','shortcutsLive','selectionLive','gapSelectionLive','linkedClipsContextLive','historyLive','mergeClipsLive','portugueseLive','unifiedMenusLive','languageHoverLive','drivePointerLive','testSilenceAndCaptionsLive'].map(name=>[name,name,{}]);
+]:['fontFavoritesLive','textEditorLatencyLive','textEditorLive','multiClipLive','directTextLive','shortcutsLive','selectionLive','gapSelectionLive','linkedClipsContextLive','historyLive','mergeClipsLive','portugueseLive','unifiedMenusLive','languageHoverLive','drivePointerLive','testSilenceAndCaptionsLive'].map(name=>[name,name,{}]);
 const results=[];
 for(const [name,script,env]of checks){
  cpSync('dist','.browser/drive-test',{recursive:true});

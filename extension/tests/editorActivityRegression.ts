@@ -11,5 +11,6 @@ await withHistoryBatch({},async()=>{await settle();assert.equal(updates,initial+
 await settle();assert.equal(updates,initial+2,'batch finish invalidates controls even without a native edit or DOM change');
 const idle=updates;await new Promise(resolve=>setTimeout(resolve,1100));
 assert.equal(updates,idle,'idle reference checks do not repaint features');
+const clip=doc.createElement('div');clip.className='TimelineClipContainer';doc.body.append(clip);await settle();const beforeBadge=updates;const badge=doc.createElement('span');badge.className='ws-link-badge';clip.append(badge);await settle();assert.equal(updates,beforeBadge,'badge additions do not loop');badge.remove();await settle();assert.equal(updates,beforeBadge+1,'native badge removal invalidates link rendering');
 stop();await win.happyDOM.close();
 console.log('Shared editor activity: batch start/end repaint, unchanged native version, idle suppression and cleanup passed.');

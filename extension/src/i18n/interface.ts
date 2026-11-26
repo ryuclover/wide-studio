@@ -7,7 +7,7 @@ export function installUiLanguage(doc:Document=document,withControl=false){
  let fullRefresh=true;const dirty=new Set<Node>();
  const textRecords=new WeakMap<Text,{source:string;rendered:string}>();
  const attributeRecords=new WeakMap<Element,Map<string,{source:string;rendered:string}>>();
- const protectedSelector='.drive-file-info strong,.drive-preview header strong,.drive-path nav,.drive-files .folder .drive-file,.conversation article,.review p,.MediaDescription .tag,.TimelineClipContainer,.TimelineLayerRow .name,.TimelineLayerRow .label,.SelectionBreadcrumbs,.SimpleValueRow .value,.ConfirmView .message strong,.ConfirmView .message q,.NotificationsContainer strong,.NotificationsContainer q,.ws-language-control,.MediaListView .path,script,style,code,pre,[contenteditable="true"],[data-ws-no-translate]';
+ const protectedSelector='.ws-batch-clip-name > .label,.drive-file-info strong,.drive-preview header strong,.drive-path nav,.drive-files .folder .drive-file,.conversation article,.review p,.MediaDescription .tag,.TimelineClipContainer,.TimelineLayerRow .name,.TimelineLayerRow .label,.SelectionBreadcrumbs,.SimpleValueRow .value,.ConfirmView .message strong,.ConfirmView .message q,.NotificationsContainer strong,.NotificationsContainer q,.ws-language-control,.MediaListView .path,script,style,code,pre,[contenteditable="true"],[data-ws-no-translate]';
  const permitted=(element:Element)=>{
   if(element.closest(protectedSelector))return false;
   if(element.closest('.MediaView')&&!element.closest('.MediaDescription .type,.MediaDescription .content'))return false;

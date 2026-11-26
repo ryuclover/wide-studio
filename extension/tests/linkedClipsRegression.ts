@@ -5,6 +5,8 @@ const a={load:{source:'text',text:'A'},filter:[{kind:'delay',time:2}]},b={load:{
 assert.deepEqual(expandLinks(new Set([a]),[new Set([a,b]),new Set([b,c])]),new Set([a,b,c]));
 assert.equal(clipLinkKey(a),clipLinkKey({...a,cache:{foo:1},filter:[{kind:'delay',time:15}]}),'moving does not change persisted identity');
 assert.notEqual(clipLinkKey(a),clipLinkKey(b));
+assert.equal(clipLinkKey({name:'same',load:{source:'text',text:'A'}}),clipLinkKey({load:{text:'A',source:'text'},name:'same'}),'serialized property order does not break links');
+assert.deepEqual(restoreLinks({groups:[[{key:clipLinkKey(a,false),start:2},{key:clipLinkKey(b,false),start:5}]]},[a,b],clip=>clip===a?2:5),[new Set([a,b])],'legacy link descriptors migrate without losing groups');
 const saved={groups:[[{key:clipLinkKey(a),start:2},{key:clipLinkKey(b),start:5}]]};
 const a2=structuredClone(a),b2=structuredClone(b),times=new Map<any,number>([[a2,2],[b2,5]]);
 assert.deepEqual(restoreLinks(saved,[a2,b2],c=>times.get(c)!),[new Set([a2,b2])]);

@@ -15,9 +15,13 @@ class EditorActivity{
           const clean=(value:string)=>value.split(/\s+/).filter(c=>c&&!c.startsWith('ws-')).sort().join(' ');
           return clean(record.oldValue||'')!==clean(target.className||'');
         }
+        // A native clip repaint replaces its children, including our badge,
+        // without changing project/version/class references. Repair removals;
+        // ignore our own additions so this cannot create an observer loop.
+        if(target.matches?.('.TimelineClipContainer')&&[...record.removedNodes].some(node=>node instanceof win.Element&&node.matches('.ws-link-badge')))return true;
         if(target.closest?.('.ws-link-controls,.ws-link-badge,.ws-history-panel,.ws-history-controls'))return false;
         return [...record.addedNodes,...record.removedNodes].some(node=>node instanceof win.Element&&(
-          node.matches('#ProjectApp,.TimelineClipContainer,.TimelineLayerRow,.ws-region-heading')||!!node.querySelector('#ProjectApp,.TimelineClipContainer,.TimelineLayerRow,.ws-region-heading')
+          node.matches('#ProjectApp,.TimelineClipContainer,.TimelineLayerRow,.ClipExplorer,.ClipForm,.ws-region-heading')||!!node.querySelector('#ProjectApp,.TimelineClipContainer,.TimelineLayerRow,.ClipExplorer,.ClipForm,.ws-region-heading')
         ));
       });
       if(meaningful)this.schedule(true);

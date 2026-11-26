@@ -3,17 +3,18 @@ export interface OfficialClip{ID:string;name?:string;disabled?:boolean;locked?:b
 export interface OfficialLayer{ID:string;name?:string;locked?:boolean;disabled?:boolean;clip:OfficialClip[]}
 export interface OfficialProject{metadata:{appVersion:string;createdTime:number;version:number};activity:{currentTime:number;playbackRate:number};media:any[];presentation:{scene:any;layer:OfficialLayer[]};output:any}
 type Api={run:<T=unknown>(operation:string,input?:unknown)=>Promise<T>;resolveBlob?:(id:string)=>Blob};
-const reads=new Set(['operation-project-get','operation-project-activity-get','operation-scene-get','operation-media-get-list']);
+const reads=new Set(['operation-project-get','operation-clip-get','operation-project-activity-get','operation-scene-get','operation-media-get-list']);
 /** One queue per page: the host rejects overlapping operations, including reads. */
 export class OfficialApiClient{
   private queue=new SerialQueue();
   private cache:{owner:object;version:number;value:OfficialProject}|undefined;
   private pending:{owner:object;version:number;value:Promise<OfficialProject>}|undefined;
   constructor(private api:()=>Api|undefined,private current:()=>any){}
-  run<T>(name:string,input?:unknown,owner=this.current()):Promise<T>{
+  run<T>(name:string,input?:unknown,owner=this.current(),validate?:()=>void):Promise<T>{
     return this.queue.run(async()=>{
       if(!owner||this.current()!==owner)throw Error('PROJECT_CHANGED');
       const api=this.api();if(!api)throw Error('OFFICIAL_API_UNAVAILABLE');
+      validate?.();
       try{return await api.run<T>(name,input);}
       finally{if(!reads.has(name))this.cache=undefined;}
     });

@@ -23,3 +23,5 @@ assert.ok(!calls.includes('stale'),'stale queued actions cannot reach the host')
 assert.equal(nativeMediaPhase({content:{kind:'valid'}}),'valid');
 assert.equal(nativeMediaPhase({kind:'valid'}),'valid');
 console.log('Official API: serialization, read coalescing, cache invalidation, failure recovery, stale project rejection and both media models passed.');
+
+await assert.rejects(client.run("guarded-write",undefined,owner,()=>{throw Error("STALE_TEXT");}),/STALE_TEXT/);assert.ok(!calls.includes("guarded-write"),"queued preflight failure never reaches the host");

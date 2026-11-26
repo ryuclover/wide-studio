@@ -2,6 +2,16 @@ import type {Language} from './languages';
 export {languages,validLanguage,type Language} from './languages';
 // Exact UI phrases only. Never use substring replacement on filenames or project text.
 const rows=[
+['Text content','Conteúdo do texto','Contenido del texto','Contenu du texte','Textinhalt'],
+['Saves automatically · Ctrl+Enter','Salva automaticamente · Ctrl+Enter','Guarda automáticamente · Ctrl+Enter','Enregistrement automatique · Ctrl+Entrée','Automatisch speichern · Strg+Enter'],
+['Saving…','Salvando…','Guardando…','Enregistrement…','Wird gespeichert…'],
+['Saved','Salvo','Guardado','Enregistré','Gespeichert'],
+['Split clips','Dividir clipes','Dividir clips','Diviser les clips','Clips teilen'],
+['Duplicate clips','Duplicar clipes','Duplicar clips','Dupliquer les clips','Clips duplizieren'],
+['At playhead','Na posição de reprodução','En el cabezal','À la tête de lecture','Am Abspielkopf'],
+['Split and delete left','Dividir e excluir parte esquerda','Dividir y eliminar izquierda','Diviser et supprimer à gauche','Teilen und links loeschen'],
+['Split and delete right','Dividir e excluir parte direita','Dividir y eliminar derecha','Diviser et supprimer à droite','Teilen und rechts loeschen'],
+['Actions per clip','Ações por clipe','Acciones por clip','Actions par clip','Aktionen pro Clip'],
 ['Merge clips','Mesclar clipes','Fusionar clips','Fusionner les clips','Clips zusammenführen'],
 ['Link clips','Vincular clipes','Vincular clips','Lier les clips','Clips verknüpfen'],
 ['Unlink clips','Desvincular clipes','Desvincular clips','Dissocier les clips','Clipverknüpfung aufheben'],

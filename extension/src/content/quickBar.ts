@@ -7,7 +7,7 @@ function applyLayout(root:HTMLElement){
  for(const element of root.querySelectorAll<HTMLElement>('[data-ws-folder-id]')){const id=element.dataset.wsFolderId!;element.style.order=String(10+layout.toolbarOrder.indexOf(folderKey(id)));element.classList.toggle('ws-user-hidden',layout.hiddenFolders.includes(id));}
  root.querySelector('.MenuBar')?.classList.toggle('ws-hide-language',!layout.showLanguage);
 }
-export function syncQuickBar(root:HTMLElement){applyLayout(root);root.querySelectorAll<HTMLButtonElement>('[data-native-action="split"]').forEach(b=>{const n=root.querySelector<HTMLButtonElement>('.TimelinePanel .Controls button.split');if(b.disabled!==(!n||n.disabled))b.disabled=!n||n.disabled;});}
+export function syncQuickBar(root:HTMLElement){applyLayout(root);root.querySelectorAll<HTMLButtonElement>('[data-native-action="split"]').forEach(b=>{const n=root.querySelector<HTMLButtonElement>('.TimelinePanel .Controls button.split'),batch=root.ownerDocument.documentElement.dataset.wsBatchSplit,disabled=batch&&batch!=='single'?batch!=='ready':!n||n.disabled;if(b.disabled!==disabled)b.disabled=disabled;});}
 export function buildQuickBar(root:HTMLElement){
  const bar=document.createElement('div');bar.className='ws-quick-bar';
  const render=()=>{bar.replaceChildren();
